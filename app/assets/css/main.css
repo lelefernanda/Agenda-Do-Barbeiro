@@ -1,0 +1,111 @@
+/* ============================================================
+   AGENDA DO BARBEIRO — base de estilo
+   Caminho: app/assets/css/main.css
+   ============================================================ */
+
+/* As fontes precisam vir ANTES de qualquer diretiva do Tailwind */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600;1,700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+/* --- Tailwind v3: descomente as 3 linhas abaixo ---
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+*/
+
+/* --- Tailwind v4: descomente a linha abaixo ---
+@import "tailwindcss";
+*/
+
+/* ------------------------------------------------------------
+   TOKENS
+   ------------------------------------------------------------ */
+:root {
+  /* superficies */
+  --preto:        #0A0A0A;
+  --preto-800:    #141414;
+  --preto-700:    #1F1F1F;
+  --preto-600:    #2A2A2A;
+
+  /* marca */
+  --dourado:      #D4AF37;
+  --dourado-400:  #E5C158;
+  --dourado-600:  #A8862A;
+
+  /* acao */
+  --laranja:      #E8873A;
+  --laranja-400:  #F09A56;
+
+  /* texto */
+  --branco:       #FAFAFA;
+  --cinza:        #A1A1A1;
+  --cinza-600:    #6E6E6E;
+
+  /* estado */
+  --verde:        #4ADE80;
+
+  /* tipografia */
+  --fonte-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --fonte-corpo:   'Manrope', system-ui, -apple-system, sans-serif;
+
+  /* medidas */
+  --largura-max:  1200px;
+  --raio:         4px;
+}
+
+/* ------------------------------------------------------------
+   BASE
+   ------------------------------------------------------------ */
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--preto);
+  color: var(--branco);
+  font-family: var(--fonte-corpo);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img, svg { display: block; max-width: 100%; }
+
+a { color: inherit; text-decoration: none; }
+
+button { font: inherit; cursor: pointer; }
+
+/* Foco visivel em dourado — nunca remover */
+:focus-visible {
+  outline: 2px solid var(--dourado);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--dourado);
+  color: var(--preto);
+}
+
+/* Barra de rolagem discreta */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--preto); }
+::-webkit-scrollbar-thumb {
+  background: var(--preto-600);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--dourado-600); }
+
+/* Acessibilidade: respeita quem pediu menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
