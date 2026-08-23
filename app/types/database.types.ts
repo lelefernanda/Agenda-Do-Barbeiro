@@ -62,6 +62,7 @@ export type Servico = {
   descricao: string | null
   duracao_min: number
   preco: number
+  foto_url: string | null
   ativo: boolean
   ordem: number
 }

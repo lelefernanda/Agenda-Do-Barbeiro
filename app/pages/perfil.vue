@@ -8,6 +8,18 @@ const supabase = useSupabaseClient<Database>()
 const usuario = useSupabaseUser()
 const { contexto, carregar } = useAcesso()
 
+/**
+ * Id de quem esta logado.
+ *
+ * Com as chaves novas do Supabase, o identificador pode vir como "sub"
+ * em vez de "id". O contexto do banco tambem tem o valor certo em
+ * perfil_id, entao usamos ele como ultima garantia.
+ */
+const meuId = computed<string | null>(() => {
+  const u = usuario.value as { id?: string; sub?: string } | null
+  return u?.id ?? u?.sub ?? contexto.value?.perfil_id ?? null
+})
+
 const nome = ref(contexto.value?.nome ?? '')
 const telefone = ref(contexto.value?.telefone ?? '')
 const salvando = ref(false)
@@ -69,7 +81,7 @@ function encolher(arquivo: File): Promise<Blob> {
 
 async function escolherFoto(evento: Event) {
   const arquivo = (evento.target as HTMLInputElement).files?.[0]
-  if (!arquivo || !usuario.value) return
+  if (!arquivo) return
 
   erro.value = ''
   aviso.value = ''
@@ -81,28 +93,20 @@ async function escolherFoto(evento: Event) {
 
   enviandoFoto.value = true
   try {
+    // O navegador so encolhe. Quem grava e o servidor, que monta o
+    // caminho a partir de quem esta logado.
     const menor = await encolher(arquivo)
-    const caminho = `${usuario.value.id}/foto.jpg`
+    const pacote = new FormData()
+    pacote.append('foto', new File([menor], 'foto.jpg', { type: 'image/jpeg' }))
 
-    const { error: erroUpload } = await supabase.storage
-      .from('avatares')
-      .upload(caminho, menor, { upsert: true, contentType: 'image/jpeg' })
-    if (erroUpload) throw new Error(erroUpload.message)
-
-    const { data } = supabase.storage.from('avatares').getPublicUrl(caminho)
-    // o carimbo de tempo obriga o navegador a buscar a versao nova
-    const url = `${data.publicUrl}?v=${Date.now()}`
-
-    const { error: erroPerfil } = await supabase
-      .from('perfis')
-      .update({ foto_url: url })
-      .eq('id', usuario.value.id)
-    if (erroPerfil) throw new Error(erroPerfil.message)
+    await $fetch('/api/perfil/foto', { method: 'POST', body: pacote })
 
     await carregar(true)
     aviso.value = 'Foto atualizada.'
-  } catch (e) {
-    erro.value = e instanceof Error ? e.message : 'Não foi possível enviar a foto.'
+  } catch (e: unknown) {
+    const err = e as { statusMessage?: string; data?: { statusMessage?: string } }
+    erro.value =
+      err.statusMessage || err.data?.statusMessage || 'Não foi possível enviar a foto.'
   } finally {
     enviandoFoto.value = false
     if (entrada.value) entrada.value.value = ''
@@ -110,12 +114,11 @@ async function escolherFoto(evento: Event) {
 }
 
 async function removerFoto() {
-  if (!usuario.value) return
   enviandoFoto.value = true
   erro.value = ''
+  aviso.value = ''
   try {
-    await supabase.storage.from('avatares').remove([`${usuario.value.id}/foto.jpg`])
-    await supabase.from('perfis').update({ foto_url: null }).eq('id', usuario.value.id)
+    await $fetch('/api/perfil/foto', { method: 'DELETE' })
     await carregar(true)
     aviso.value = 'Foto removida.'
   } catch {
@@ -126,7 +129,7 @@ async function removerFoto() {
 }
 
 async function salvar() {
-  if (!usuario.value) return
+  if (!meuId.value) return
   erro.value = ''
   aviso.value = ''
 
@@ -139,7 +142,7 @@ async function salvar() {
   const { error } = await supabase
     .from('perfis')
     .update({ nome: nome.value.trim(), telefone: telefone.value.trim() || null })
-    .eq('id', usuario.value.id)
+    .eq('id', meuId.value)
   salvando.value = false
 
   if (error) {

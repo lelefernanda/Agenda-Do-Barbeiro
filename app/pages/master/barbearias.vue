@@ -149,20 +149,34 @@ const linkWhatsApp = computed(() => {
    Suspender e reativar
    ------------------------------------------------------------ */
 const mexendo = ref<string | null>(null)
+const confirmando = ref<Linha | null>(null)
 
-async function trocarStatus(b: Linha) {
+const vaiSuspender = computed(() => confirmando.value?.status === 'ativa')
+
+function pedirConfirmacao(b: Linha) {
+  confirmando.value = b
+}
+
+async function confirmar() {
+  const b = confirmando.value
+  if (!b) return
   const novo = b.status === 'ativa' ? 'suspensa' : 'ativa'
-  const aviso =
-    novo === 'suspensa'
-      ? `Suspender ${b.nome}?\n\nO dono e todos os barbeiros perdem o acesso na hora, e a página pública sai do ar. Nada é apagado — reativar devolve tudo como estava.`
-      : `Reativar ${b.nome}?`
-  if (!confirm(aviso)) return
 
   mexendo.value = b.id
+  confirmando.value = null
   await supabase.from('barbearias').update({ status: novo }).eq('id', b.id)
   mexendo.value = null
   await refresh()
 }
+
+// Esc fecha o aviso, como qualquer janela do sistema
+onMounted(() => {
+  const aoTeclar = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') confirmando.value = null
+  }
+  window.addEventListener('keydown', aoTeclar)
+  onUnmounted(() => window.removeEventListener('keydown', aoTeclar))
+})
 
 /** Dias que faltam para vencer. Negativo = ja venceu. */
 function diasAte(iso: string | null): number | null {
@@ -326,12 +340,55 @@ function dataBr(iso: string) {
           class="btn btn--pequeno"
           :class="b.status === 'ativa' ? 'btn--perigo' : 'btn--ouro'"
           :disabled="mexendo === b.id"
-          @click="trocarStatus(b)"
+          @click="pedirConfirmacao(b)"
         >
           {{ mexendo === b.id ? '…' : b.status === 'ativa' ? 'Suspender' : 'Reativar' }}
         </button>
       </li>
     </ul>
+
+    <!-- ============ aviso de confirmacao ============ -->
+    <Teleport to="body">
+      <div v-if="confirmando" class="cortina" @click.self="confirmando = null">
+        <div class="janela" role="dialog" aria-modal="true" aria-labelledby="tituloAviso">
+          <p class="janela__rotulo">
+            {{ vaiSuspender ? 'Suspender acesso' : 'Reativar acesso' }}
+          </p>
+          <h2 id="tituloAviso" class="janela__titulo">{{ confirmando.nome }}</h2>
+
+          <div v-if="vaiSuspender" class="janela__corpo">
+            <p>Ao suspender, na mesma hora:</p>
+            <ul>
+              <li>o dono e todos os barbeiros perdem o acesso ao painel</li>
+              <li>a página <strong>/{{ confirmando.slug }}</strong> sai do ar</li>
+              <li>os clientes não conseguem mais agendar</li>
+            </ul>
+            <p class="janela__calma">
+              Nada é apagado. Agendamentos, equipe e histórico continuam no lugar,
+              e reativar devolve tudo exatamente como estava.
+            </p>
+          </div>
+
+          <div v-else class="janela__corpo">
+            <p>
+              O dono e os barbeiros voltam a acessar o painel, e a página
+              <strong>/{{ confirmando.slug }}</strong> volta ao ar.
+            </p>
+          </div>
+
+          <div class="janela__acoes">
+            <button class="btn btn--simples" @click="confirmando = null">Cancelar</button>
+            <button
+              class="btn"
+              :class="vaiSuspender ? 'btn--suspender' : 'btn--laranja'"
+              @click="confirmar"
+            >
+              {{ vaiSuspender ? 'Suspender' : 'Reativar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -594,6 +651,85 @@ function dataBr(iso: string) {
   border: 1px solid;
 }
 .acesso__acoes { display: grid; gap: 10px; }
+
+/* ---------- aviso de confirmacao ---------- */
+.cortina {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
+  animation: aparecer 0.16s ease;
+}
+@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+
+.janela {
+  width: 100%;
+  max-width: 460px;
+  padding: 28px 30px;
+  background: var(--preto-800);
+  border: 1px solid var(--preto-600);
+  border-radius: 12px;
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.9);
+  animation: subir 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes subir {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.janela__rotulo {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--laranja);
+}
+.janela__titulo {
+  margin: 0 0 18px;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--branco);
+}
+
+.janela__corpo { font-size: 14.5px; color: var(--cinza); line-height: 1.6; }
+.janela__corpo p { margin: 0 0 10px; }
+.janela__corpo ul { margin: 0 0 14px; padding-left: 20px; }
+.janela__corpo li { margin-bottom: 5px; }
+.janela__corpo strong { color: var(--dourado); font-weight: 700; }
+
+.janela__calma {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--preto);
+  border-left: 2px solid var(--dourado-600);
+  border-radius: 0 var(--raio) var(--raio) 0;
+  font-size: 13.5px;
+  color: var(--cinza-600);
+}
+
+.janela__acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.btn--simples {
+  background: transparent;
+  border-color: var(--preto-600);
+  color: var(--cinza);
+}
+.btn--simples:hover { border-color: var(--cinza-600); color: var(--branco); }
+
+.btn--suspender { background: var(--laranja); color: #17100A; }
+.btn--suspender:hover { background: var(--laranja-400); }
 
 .alerta {
   display: inline-block;
