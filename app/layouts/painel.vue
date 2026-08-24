@@ -25,6 +25,9 @@ const { contexto, sair, ehMaster, ehDono } = useAcesso()
 type Traco = { d: string; c?: [number, number, number][] }
 
 const ICONES = {
+  caixa: {
+    d: 'M12 5.5v13 M15.4 8.3c-.8-1-2-1.5-3.3-1.5-1.8 0-3.2 1-3.2 2.4 0 3.2 6.6 1.9 6.6 5.1 0 1.5-1.5 2.5-3.4 2.5-1.4 0-2.7-.6-3.5-1.6',
+  },
   agenda: {
     d: 'M7.5 3.5v3 M16.5 3.5v3 M6 5h12a2.5 2.5 0 0 1 2.5 2.5V18A2.5 2.5 0 0 1 18 20.5H6A2.5 2.5 0 0 1 3.5 18V7.5A2.5 2.5 0 0 1 6 5z M3.5 10h17',
   },
@@ -80,6 +83,7 @@ const itens = computed<Item[]>(() => {
       { rota: '/master', texto: 'Visão geral', curto: 'Início', icone: ICONES.visao },
       { rota: '/master/barbearias', texto: 'Barbearias', icone: ICONES.barbearia },
       { rota: '/master/solicitacoes', texto: 'Solicitações', icone: ICONES.solicitacoes },
+      { rota: '/master/senha', texto: 'Senhas', icone: ICONES.sair },
     ]
   }
   if (ehDono.value) {
@@ -87,6 +91,8 @@ const itens = computed<Item[]>(() => {
       { rota: '/painel', texto: 'Agenda', icone: ICONES.agenda },
       { rota: '/painel/servicos', texto: 'Serviços', icone: ICONES.tesoura },
       { rota: '/painel/equipe', texto: 'Equipe', icone: ICONES.equipe },
+      { rota: '/painel/caixa', texto: 'Caixa', icone: ICONES.caixa },
+      { rota: '/painel/horarios', texto: 'Horários', icone: ICONES.horarios },
       { rota: '/painel/clientes', texto: 'Clientes', icone: ICONES.clientes, emBreve: true },
       { rota: '/painel/barbearia', texto: 'Minha barbearia', curto: 'Barbearia', icone: ICONES.barbearia, emBreve: true },
     ]
@@ -94,7 +100,8 @@ const itens = computed<Item[]>(() => {
   // barbeiro
   return [
     { rota: '/painel', texto: 'Minha agenda', curto: 'Agenda', icone: ICONES.agenda },
-    { rota: '/painel/horarios', texto: 'Meus horários', curto: 'Horários', icone: ICONES.horarios, emBreve: true },
+    { rota: '/painel/horarios', texto: 'Meus horários', curto: 'Horários', icone: ICONES.horarios },
+    { rota: '/painel/caixa', texto: 'Meus ganhos', curto: 'Ganhos', icone: ICONES.caixa },
     { rota: '/painel/avaliacoes', texto: 'Avaliações', icone: ICONES.avaliacoes, emBreve: true },
   ]
 })

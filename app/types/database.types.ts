@@ -35,6 +35,8 @@ export type Barbearia = {
 }
 
 export type Perfil = {
+  comissao_pct: number | null
+  meta_mes: number | null
   id: string
   barbearia_id: string | null
   papel: PapelUsuario
