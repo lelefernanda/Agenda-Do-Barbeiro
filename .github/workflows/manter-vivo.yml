@@ -1,0 +1,24 @@
+# Pinga o banco duas vezes por semana para o Supabase gratuito
+# nunca pausar o projeto por inatividade (janela de 7 dias).
+
+name: Manter Supabase acordado
+
+on:
+  schedule:
+    - cron: '0 12 * * 1,4'   # segunda e quinta, 9h de Brasília
+  workflow_dispatch:          # botão para rodar na mão
+
+jobs:
+  pingar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta boba ao banco
+        run: |
+          curl --fail --silent --show-error \
+            "$SUPABASE_URL/rest/v1/barbearias?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" > /dev/null
+          echo "Banco pingado com sucesso."
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
