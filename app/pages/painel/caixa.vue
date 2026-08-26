@@ -87,7 +87,7 @@ const { data: barbeiros, refresh: recarregarBarbeiros } = await useAsyncData<Bar
     let q = supabase
       .from('perfis')
       .select('id, nome, foto_url, comissao_pct, meta_mes')
-      .eq('papel', 'barbeiro')
+      .eq('atende', true)
       .eq('status', 'ativo')
       .order('nome', { ascending: true })
     if (souBarbeiro.value && contexto.value) q = q.eq('id', contexto.value.perfil_id)
@@ -444,7 +444,7 @@ onMounted(() => {
 .btn:disabled { opacity: 0.45; cursor: default; }
 .btn--laranja {
   background: var(--laranja);
-  color: #17100A;
+  color: #FFFFFF;
   box-shadow: 0 12px 26px -14px color-mix(in srgb, var(--laranja) 55%, transparent);
 }
 .btn--laranja:hover:not(:disabled) { transform: translateY(-1px); }
@@ -523,7 +523,6 @@ onMounted(() => {
   margin: 0 0 8px;
   font-size: var(--tam-rotulo);
   font-weight: 700;
-  font-stretch: 120%;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--dourado);
@@ -591,7 +590,6 @@ onMounted(() => {
   margin: 0 0 10px;
   font-size: var(--tam-rotulo);
   font-weight: 700;
-  font-stretch: 120%;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--dourado);
@@ -719,7 +717,6 @@ onMounted(() => {
   margin: 0 0 6px;
   font-size: var(--tam-rotulo);
   font-weight: 700;
-  font-stretch: 120%;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--dourado);
@@ -743,7 +740,6 @@ onMounted(() => {
   margin-bottom: 7px;
   font-size: var(--tam-rotulo);
   font-weight: 700;
-  font-stretch: 118%;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--cinza);

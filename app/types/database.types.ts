@@ -45,6 +45,7 @@ export type Perfil = {
   foto_url: string | null
   bio: string | null
   status: StatusPessoa
+  atende: boolean
   criado_em: string
 }
 

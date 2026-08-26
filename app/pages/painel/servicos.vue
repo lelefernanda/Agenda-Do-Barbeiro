@@ -766,7 +766,7 @@ onMounted(() => {
 
 .btn--laranja {
   background: var(--laranja);
-  color: #17100A;
+  color: #FFFFFF;
   box-shadow: 0 12px 26px -14px color-mix(in srgb, var(--laranja) 55%, transparent);
 }
 .btn--laranja:hover:not(:disabled) { transform: translateY(-1px); }
@@ -934,7 +934,6 @@ onMounted(() => {
   padding: 3px 9px;
   font-size: 10px;
   font-weight: 700;
-  font-stretch: 115%;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   border: 1px solid var(--linha);
@@ -1038,7 +1037,6 @@ onMounted(() => {
   margin: 0 0 18px;
   font-size: var(--tam-rotulo);
   font-weight: 700;
-  font-stretch: 120%;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--dourado);
@@ -1073,7 +1071,6 @@ onMounted(() => {
   margin-bottom: 7px;
   font-size: var(--tam-rotulo);
   font-weight: 700;
-  font-stretch: 118%;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--cinza);

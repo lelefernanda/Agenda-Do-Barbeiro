@@ -28,6 +28,24 @@ const aviso = ref('')
 const erro = ref('')
 const entrada = ref<HTMLInputElement | null>(null)
 
+const atende = ref(false)
+const ehDonoAqui = computed(() => contexto.value?.papel === "dono")
+
+watch(meuId, async (id) => {
+  if (!id) return
+  const { data } = await supabase.from("perfis").select("atende").eq("id", id).single()
+  atende.value = Boolean((data as { atende?: boolean } | null)?.atende)
+}, { immediate: true })
+
+function camposDoPerfil() {
+  const campos: Record<string, unknown> = {
+    nome: nome.value.trim(),
+    telefone: telefone.value.trim() || null,
+  }
+  if (ehDonoAqui.value) campos.atende = atende.value
+  return campos
+}
+
 const iniciais = computed(() => {
   const n = contexto.value?.nome ?? ''
   return n.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
@@ -141,7 +159,7 @@ async function salvar() {
   salvando.value = true
   const { error } = await supabase
     .from('perfis')
-    .update({ nome: nome.value.trim(), telefone: telefone.value.trim() || null })
+    .update(camposDoPerfil())
     .eq('id', meuId.value)
   salvando.value = false
 
@@ -229,6 +247,17 @@ async function salvar() {
         </div>
       </div>
 
+      <div v-if="ehDonoAqui" class="cadeira">
+        <label class="chave">
+          <input v-model="atende" type="checkbox" :disabled="salvando" />
+          <span class="chave__trilho"><span class="chave__bola" /></span>
+          <span class="chave__texto">
+            <strong>Eu também atendo</strong>
+            <small>Ligado, você aparece na agenda como atendente, com seus próprios horários — e o cliente pode marcar com você.</small>
+          </span>
+        </label>
+      </div>
+
       <button class="btn btn--laranja" :disabled="salvando" @click="salvar">
         {{ salvando ? 'Salvando…' : 'Salvar' }}
       </button>
@@ -242,6 +271,42 @@ async function salvar() {
 </template>
 
 <style scoped>
+.cadeira {
+  margin: 4px 0 18px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--linha);
+  border-radius: 16px;
+}
+.chave { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.chave input { position: absolute; opacity: 0; width: 0; height: 0; }
+.chave__trilho {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 26px;
+  margin-top: 2px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--linha);
+  border-radius: 99px;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.chave__bola {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: var(--cinza-600);
+  border-radius: 99px;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.chave input:checked + .chave__trilho { background: var(--dourado-suave); border-color: var(--dourado-linha); }
+.chave input:checked + .chave__trilho .chave__bola { transform: translateX(20px); background: var(--dourado); }
+.chave input:focus-visible + .chave__trilho { outline: 2px solid var(--dourado); outline-offset: 2px; }
+.chave__texto { display: flex; flex-direction: column; gap: 3px; }
+.chave__texto strong { font-size: 15px; font-weight: 700; color: var(--branco); }
+.chave__texto small { font-size: 12.5px; color: var(--cinza-600); line-height: 1.55; }
 .cabecalho { margin-bottom: 26px; }
 .sobrancelha {
   margin: 0 0 8px;

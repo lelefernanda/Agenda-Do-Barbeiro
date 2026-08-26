@@ -250,8 +250,8 @@ const iniciais = computed(() => {
  */
 .shell {
   /* fonte: Archivo em tudo dentro do painel */
-  --fonte-corpo: 'Archivo', sans-serif;
-  --fonte-display: 'Archivo', sans-serif;
+  --fonte-corpo: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --fonte-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
   /* escala fixa de 5 tamanhos — todo texto cai num destes */
   --tam-titulo: 28px;
@@ -261,22 +261,27 @@ const iniciais = computed(() => {
   --tam-rotulo: 11px;
 
   /* paleta couro */
-  --couro-luz: #241811;
-  --couro: #171009;
-  --couro-sombra: #0C0A08;
-  --superficie: rgba(30, 23, 17, 0.6);
-  --linha: rgba(255, 255, 255, 0.07);
-  --linha-suave: rgba(255, 255, 255, 0.05);
-  --dourado-suave: rgba(212, 175, 55, 0.1);
-  --dourado-linha: rgba(212, 175, 55, 0.32);
+  --couro-luz: #10162A;
+  --couro: #0A0B0D;
+  --couro-sombra: #07080A;
+  --superficie: rgba(20, 26, 46, 0.62);
+  --linha: rgba(255, 255, 255, 0.08);
+  --linha-suave: rgba(255, 255, 255, 0.055);
+  --dourado: #7EB0FA;
+  --dourado-400: #A5C8FC;
+  --dourado-600: #2563EB;
+  --laranja: #3B82F6;
+  --laranja-400: #7EB0FA;
+  --dourado-suave: rgba(59, 130, 246, 0.14);
+  --dourado-linha: rgba(59, 130, 246, 0.35);
 
   /* remapeamento das variáveis antigas para tons quentes */
-  --branco: #F4F1EA;
-  --cinza: #B9AFA2;
-  --cinza-600: #8B7F70;
-  --preto-800: #1D1610;
-  --preto-700: #2B2118;
-  --preto-600: #3C2F23;
+  --branco: #F2F4F8;
+  --cinza: #949AAB;
+  --cinza-600: #6E7488;
+  --preto-800: #141A2E;
+  --preto-700: #1B2340;
+  --preto-600: #2A3252;
   --raio: 14px;
 
   font-family: var(--fonte-corpo);
@@ -289,10 +294,8 @@ const iniciais = computed(() => {
      vinheta nas bordas + degradê quente de couro e madeira */
   background-color: var(--couro);
   background-image:
-    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='140'%20height='140'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.85'%20numOctaves='2'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20type='saturate'%20values='0'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23n)'%20opacity='0.05'/%3E%3C/svg%3E"),
-    radial-gradient(130% 80% at 50% -10%, rgba(212, 175, 55, 0.1), transparent 55%),
-    radial-gradient(150% 110% at 50% 60%, transparent 50%, rgba(0, 0, 0, 0.5) 100%),
-    linear-gradient(168deg, var(--couro-luz) 0%, var(--couro) 46%, var(--couro-sombra) 100%);
+    radial-gradient(90% 65% at 6% 0%, rgba(59, 130, 246, 0.20), transparent 58%);
+  background-attachment: fixed;
 }
 
 /* títulos das páginas do painel, já na escala nova */
@@ -314,7 +317,7 @@ const iniciais = computed(() => {
   width: 272px;
   flex-shrink: 0;
   padding: 26px 18px;
-  background: rgba(18, 13, 9, 0.55);
+  background: rgba(12, 15, 24, 0.55);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-right: 1px solid var(--linha-suave);
@@ -343,7 +346,6 @@ const iniciais = computed(() => {
 .marca__linha2 {
   font-size: 9.5px;
   font-weight: 700;
-  font-stretch: 122%;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--dourado);
@@ -397,7 +399,6 @@ const iniciais = computed(() => {
   padding: 2px 7px;
   font-size: 9px;
   font-weight: 700;
-  font-stretch: 115%;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--cinza-600);
@@ -427,7 +428,7 @@ const iniciais = computed(() => {
   justify-content: center;
   border-radius: 99px;
   overflow: hidden;
-  background: linear-gradient(135deg, #C9A233, #8A6D1D);
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
   color: #14100B;
   font-size: 13px;
   font-weight: 800;
@@ -447,7 +448,6 @@ const iniciais = computed(() => {
   margin: 1px 0 0;
   font-size: 10.5px;
   font-weight: 700;
-  font-stretch: 118%;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--cinza-600);
@@ -494,7 +494,7 @@ const iniciais = computed(() => {
   top: 0;
   z-index: 40;
   padding: calc(10px + env(safe-area-inset-top)) 18px 10px;
-  background: rgba(16, 12, 9, 0.72);
+  background: rgba(10, 13, 20, 0.75);
   backdrop-filter: blur(18px) saturate(1.3);
   -webkit-backdrop-filter: blur(18px) saturate(1.3);
   border-bottom: 1px solid var(--linha-suave);
@@ -520,7 +520,7 @@ const iniciais = computed(() => {
   justify-content: center;
   border-radius: 99px;
   overflow: hidden;
-  background: linear-gradient(135deg, #C9A233, #8A6D1D);
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
   color: #14100B;
   font-size: 11.5px;
   font-weight: 800;
@@ -555,7 +555,7 @@ const iniciais = computed(() => {
   grid-auto-columns: 1fr;
   gap: 2px;
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-  background: rgba(14, 11, 8, 0.78);
+  background: rgba(9, 12, 18, 0.8);
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
   border-top: 1px solid var(--linha-suave);
