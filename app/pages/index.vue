@@ -1341,6 +1341,16 @@ onBeforeUnmount(() => observer.value?.disconnect())
   .marca__linha1 { font-size: 19px; }
   .rodape__interno { flex-direction: column; align-items: flex-start; gap: 18px; }
   .rodape__nav { margin-left: 0; flex-wrap: wrap; }
-  .topo__acoes .link-entrar { display: none; }
+  /* No celular o Entrar continua visivel: quem ja e cliente precisa
+     dele. Quem encolhe e o botao do WhatsApp, que vira so o essencial. */
+  .topo__acoes { gap: 12px; }
+  .topo__acoes .link-entrar {
+    padding: 8px 14px;
+    border: 1px solid var(--preto-600);
+    border-radius: 99px;
+    color: var(--branco);
+    font-weight: 600;
+  }
+  .topo__acoes .btn--sm { padding: 9px 14px; font-size: 13.5px; }
 }
 </style>
