@@ -17,7 +17,6 @@ type BloqueioLinha = { id: string; inicio: string; fim: string; motivo: string |
    Convenção: dia_semana segue o padrão do Postgres e do
    JavaScript — 0 é domingo, 6 é sábado. A semana é exibida
    começando na segunda porque é assim que barbearia pensa.
-   Se no seu SQL a convenção for outra, só ajustar os números aqui.
    ------------------------------------------------------------ */
 const DIAS = [
   { n: 1, nome: 'Segunda', curto: 'seg' },
@@ -141,53 +140,75 @@ function ligarDia(n: number) {
   else semana.value[n] = [{ inicio: '09:00', fim: '19:00' }]
 }
 
-function novaFaixa(n: number) {
-  faixasDe(n).push({ inicio: '13:00', fim: '19:00' })
-}
-
-function tirarFaixa(n: number, i: number) {
-  faixasDe(n).splice(i, 1)
-}
-
 /* ------------------------------------------------------------
-   Fechar um período dentro do expediente (almoço, folga da tarde).
+   A TRADUÇÃO.
 
-   O dono digita a PAUSA — do jeito que ele pensa — e a faixa
-   que a contém é dividida em duas sozinha:
-   08–18 com pausa 12–13 vira 08–12 e 13–18.
+   A tela fala a língua do dono: "abro tal hora, fecho tal hora,
+   e paro pro almoço". O banco continua guardando faixas — sem
+   almoço, uma; com almoço, duas. Estas funções fazem a ponte
+   entre os dois mundos, e é por isso que a agenda continua
+   calculando os horários livres exatamente como antes.
    ------------------------------------------------------------ */
-const pausando = ref<number | null>(null)
-const pausa = reactive({ inicio: '12:00', fim: '13:00' })
-const erroPausa = ref('')
-
-function abrirPausa(n: number) {
-  erroPausa.value = ''
-  Object.assign(pausa, { inicio: '12:00', fim: '13:00' })
-  pausando.value = pausando.value === n ? null : n
+function abreDe(n: number): string {
+  return faixasDe(n)[0]?.inicio ?? '09:00'
 }
 
-function aplicarPausa(n: number) {
-  erroPausa.value = ''
+function fechaDe(n: number): string {
+  const f = faixasDe(n)
+  return f[f.length - 1]?.fim ?? '19:00'
+}
 
-  if (!pausa.inicio || !pausa.fim || pausa.fim <= pausa.inicio) {
-    erroPausa.value = 'O fim da pausa precisa ser depois do início.'
-    return
-  }
+function temAlmoco(n: number): boolean {
+  return faixasDe(n).length > 1
+}
 
-  const faixas = faixasDe(n)
-  const i = faixas.findIndex((f) => pausa.inicio >= f.inicio && pausa.fim <= f.fim)
-  if (i === -1) {
-    erroPausa.value = 'A pausa precisa caber dentro do horário de atendimento.'
-    return
-  }
+function almocoDe(n: number): { inicio: string; fim: string } {
+  const f = faixasDe(n)
+  if (f.length > 1) return { inicio: f[0]!.fim, fim: f[1]!.inicio }
+  return { inicio: '12:00', fim: '13:00' }
+}
 
-  const f = faixas[i]!
-  const pedacos: Faixa[] = []
-  if (pausa.inicio > f.inicio) pedacos.push({ inicio: f.inicio, fim: pausa.inicio })
-  if (pausa.fim < f.fim) pedacos.push({ inicio: pausa.fim, fim: f.fim })
-  faixas.splice(i, 1, ...pedacos)
+function montarDia(
+  n: number,
+  abre: string,
+  fecha: string,
+  almoco: { inicio: string; fim: string } | null,
+) {
+  semana.value[n] = almoco
+    ? [
+        { inicio: abre, fim: almoco.inicio },
+        { inicio: almoco.fim, fim: fecha },
+      ]
+    : [{ inicio: abre, fim: fecha }]
+}
 
-  pausando.value = null
+function aoMudarAbre(n: number, e: Event) {
+  const v = (e.target as HTMLInputElement).value
+  if (!v) return
+  montarDia(n, v, fechaDe(n), temAlmoco(n) ? almocoDe(n) : null)
+}
+
+function aoMudarFecha(n: number, e: Event) {
+  const v = (e.target as HTMLInputElement).value
+  if (!v) return
+  montarDia(n, abreDe(n), v, temAlmoco(n) ? almocoDe(n) : null)
+}
+
+function virarAlmoco(n: number) {
+  montarDia(
+    n,
+    abreDe(n),
+    fechaDe(n),
+    temAlmoco(n) ? null : { inicio: '12:00', fim: '13:00' },
+  )
+}
+
+function aoMudarAlmoco(n: number, campo: 'inicio' | 'fim', e: Event) {
+  const v = (e.target as HTMLInputElement).value
+  if (!v) return
+  const a = almocoDe(n)
+  a[campo] = v
+  montarDia(n, abreDe(n), fechaDe(n), a)
 }
 
 /* copiar um dia para os outros */
@@ -214,13 +235,20 @@ const erroSemana = ref('')
 
 function validar(): string {
   for (const d of DIAS) {
-    const faixas = [...faixasDe(d.n)].sort((a, b) => a.inicio.localeCompare(b.inicio))
-    for (let i = 0; i < faixas.length; i++) {
-      const f = faixas[i]!
-      if (!f.inicio || !f.fim) return `${d.nome}: preencha início e fim.`
-      if (f.fim <= f.inicio) return `${d.nome}: o fim precisa ser depois do início.`
-      if (i > 0 && f.inicio < faixas[i - 1]!.fim) {
-        return `${d.nome}: as faixas estão se sobrepondo.`
+    const faixas = faixasDe(d.n)
+    if (!faixas.length) continue
+
+    if (fechaDe(d.n) <= abreDe(d.n)) {
+      return `${d.nome}: o horário de fechar precisa ser depois do de abrir.`
+    }
+
+    if (temAlmoco(d.n)) {
+      const a = almocoDe(d.n)
+      if (a.fim <= a.inicio) {
+        return `${d.nome}: o fim do almoço precisa ser depois do início.`
+      }
+      if (a.inicio <= abreDe(d.n) || a.fim >= fechaDe(d.n)) {
+        return `${d.nome}: o almoço precisa ficar dentro do horário de atendimento.`
       }
     }
   }
@@ -356,7 +384,6 @@ onMounted(() => {
   const aoTeclar = (e: KeyboardEvent) => {
     if (e.key !== 'Escape') return
     if (abrindoBloqueio.value) abrindoBloqueio.value = false
-    else if (pausando.value !== null) pausando.value = null
     else if (copiando.value !== null) copiando.value = null
   }
   window.addEventListener('keydown', aoTeclar)
@@ -460,40 +487,61 @@ onMounted(() => {
           <!-- fechado -->
           <p v-if="!faixasDe(d.n).length" class="dia__fechado-texto">Fechado</p>
 
-          <!-- faixas -->
+          <!-- aberto: abre, fecha e almoco -->
           <template v-else>
-            <div v-for="(f, i) in faixasDe(d.n)" :key="i" class="faixa">
-              <template v-if="ehDono">
-                <input v-model="f.inicio" type="time" class="faixa__hora" />
-                <span class="faixa__ate">—</span>
-                <input v-model="f.fim" type="time" class="faixa__hora" />
-                <button
-                  v-if="faixasDe(d.n).length > 1"
-                  class="faixa__tirar"
-                  aria-label="Remover faixa"
-                  @click="tirarFaixa(d.n, i)"
-                >×</button>
-              </template>
-              <span v-else class="faixa__leitura">{{ f.inicio }} — {{ f.fim }}</span>
-            </div>
-
-            <div v-if="ehDono" class="dia__acoes">
-              <button class="dia__mais" @click="abrirPausa(d.n)">
-                Fechar um período <span class="dia__mais-dica">(almoço, por exemplo)</span>
-              </button>
-              <button class="dia__mais dia__mais--suave" @click="novaFaixa(d.n)">+ outra faixa</button>
-            </div>
-
-            <div v-if="pausando === d.n" class="pausa">
-              <p class="pausa__texto">Sem atendimento entre:</p>
-              <div class="pausa__linha">
-                <input v-model="pausa.inicio" type="time" class="faixa__hora" />
-                <span class="faixa__ate">—</span>
-                <input v-model="pausa.fim" type="time" class="faixa__hora" />
-                <button class="btn btn--pequeno btn--ouro" @click="aplicarPausa(d.n)">Aplicar</button>
+            <template v-if="ehDono">
+              <div class="faixa">
+                <span class="faixa__rotulo">das</span>
+                <input
+                  type="time"
+                  class="faixa__hora"
+                  :value="abreDe(d.n)"
+                  @change="aoMudarAbre(d.n, $event)"
+                />
+                <span class="faixa__rotulo">às</span>
+                <input
+                  type="time"
+                  class="faixa__hora"
+                  :value="fechaDe(d.n)"
+                  @change="aoMudarFecha(d.n, $event)"
+                />
               </div>
-              <p v-if="erroPausa" class="pausa__erro">{{ erroPausa }}</p>
-            </div>
+
+              <label class="almoco">
+                <input
+                  type="checkbox"
+                  :checked="temAlmoco(d.n)"
+                  @change="virarAlmoco(d.n)"
+                />
+                <span class="almoco__texto">Paro para o almoço</span>
+              </label>
+
+              <div v-if="temAlmoco(d.n)" class="faixa faixa--almoco">
+                <input
+                  type="time"
+                  class="faixa__hora"
+                  :value="almocoDe(d.n).inicio"
+                  @change="aoMudarAlmoco(d.n, 'inicio', $event)"
+                />
+                <span class="faixa__rotulo">às</span>
+                <input
+                  type="time"
+                  class="faixa__hora"
+                  :value="almocoDe(d.n).fim"
+                  @change="aoMudarAlmoco(d.n, 'fim', $event)"
+                />
+              </div>
+            </template>
+
+            <!-- o barbeiro so le -->
+            <template v-else>
+              <div class="faixa">
+                <span class="faixa__leitura">{{ abreDe(d.n) }} — {{ fechaDe(d.n) }}</span>
+              </div>
+              <p v-if="temAlmoco(d.n)" class="dia__almoco-leitura">
+                almoço {{ almocoDe(d.n).inicio }} — {{ almocoDe(d.n).fim }}
+              </p>
+            </template>
           </template>
 
           <!-- copiar para -->
@@ -735,7 +783,7 @@ onMounted(() => {
   gap: 12px;
   padding: 10px 14px;
   margin-bottom: 14px;
-  background: rgba(28, 21, 15, 0.96);
+  background: rgba(16, 22, 42, 0.96);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--dourado-linha);
@@ -750,8 +798,8 @@ onMounted(() => {
 .erro-geral {
   margin: 0 0 14px;
   padding: 11px 14px;
-  border: 1px solid rgba(237, 112, 20, 0.4);
-  background: rgba(237, 112, 20, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.08);
   border-radius: var(--raio);
   font-size: 13.5px;
   color: var(--laranja-400);
@@ -791,7 +839,7 @@ onMounted(() => {
   cursor: pointer;
   min-height: 28px;
 }
-.dia__liga input { width: 18px; height: 18px; accent-color: var(--dourado); }
+.dia__liga input { width: 18px; height: 18px; accent-color: var(--laranja); cursor: pointer; }
 .dia__nome {
   font-size: 15.5px;
   font-weight: 700;
@@ -822,11 +870,18 @@ onMounted(() => {
   color: var(--cinza-600);
 }
 
+/* ---------- abre / fecha / almoco ---------- */
 .faixa {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 10px 0 0 29px;
+  margin: 12px 0 0 29px;
+  flex-wrap: wrap;
+}
+.faixa__rotulo {
+  font-size: 13.5px;
+  color: var(--cinza-600);
+  flex-shrink: 0;
 }
 .faixa__hora {
   padding: 9px 11px;
@@ -841,22 +896,6 @@ onMounted(() => {
   color-scheme: dark;
 }
 .faixa__hora:focus { outline: none; border-color: var(--dourado-linha); }
-.faixa__ate { color: var(--cinza-600); }
-.faixa__tirar {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid var(--linha);
-  border-radius: 99px;
-  color: var(--cinza-600);
-  font-size: 17px;
-  line-height: 1;
-  transition: border-color 0.16s ease, color 0.16s ease;
-}
-.faixa__tirar:hover { border-color: var(--laranja); color: var(--laranja); }
 
 .faixa__leitura {
   font-size: 14.5px;
@@ -864,48 +903,28 @@ onMounted(() => {
   color: var(--cinza);
 }
 
-.dia__acoes {
+.almoco {
   display: flex;
-  align-items: baseline;
-  gap: 18px;
-  flex-wrap: wrap;
-  margin: 12px 0 0 29px;
+  align-items: center;
+  gap: 11px;
+  margin: 14px 0 0 29px;
+  cursor: pointer;
+  width: fit-content;
 }
-.dia__mais {
-  padding: 0;
-  background: transparent;
-  border: none;
-  color: var(--dourado);
-  font-family: var(--fonte-corpo);
-  font-size: 13px;
-  font-weight: 700;
-  text-align: left;
-}
-.dia__mais--suave { color: var(--cinza-600); }
-.dia__mais--suave:hover { color: var(--cinza); }
-.dia__mais-dica { color: var(--cinza-600); font-weight: 500; }
+.almoco input { width: 17px; height: 17px; accent-color: var(--laranja); cursor: pointer; }
+.almoco__texto { font-size: 13.5px; color: var(--cinza); }
 
-.pausa {
-  margin: 12px 0 0 29px;
-  padding: 12px 14px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--linha-suave);
-  border-radius: 14px;
-}
-.pausa__texto {
-  margin: 0 0 8px;
+.faixa--almoco { margin-top: 10px; margin-left: 57px; }
+
+.dia__almoco-leitura {
+  margin: 6px 0 0 29px;
   font-size: 12.5px;
   color: var(--cinza-600);
-}
-.pausa__linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.pausa__erro {
-  margin: 8px 0 0;
-  font-size: 12.5px;
-  color: var(--laranja-400);
+  font-variant-numeric: tabular-nums;
 }
 
 .copiar-para {
-  margin: 12px 0 0 29px;
+  margin: 14px 0 0 29px;
   padding: 12px 14px;
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--linha-suave);
@@ -999,7 +1018,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(8, 6, 4, 0.72);
+  background: rgba(6, 8, 12, 0.74);
   backdrop-filter: blur(4px);
   animation: aparecer 0.16s ease;
 }
@@ -1011,7 +1030,7 @@ onMounted(() => {
   max-height: 90vh;
   overflow-y: auto;
   padding: 26px 28px;
-  background: rgba(28, 21, 15, 0.97);
+  background: rgba(16, 22, 42, 0.97);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--linha);
@@ -1035,8 +1054,8 @@ onMounted(() => {
 .janela__erro {
   margin: 0 0 16px;
   padding: 11px 14px;
-  border: 1px solid rgba(237, 112, 20, 0.4);
-  background: rgba(237, 112, 20, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.08);
   border-radius: var(--raio);
   font-size: 13.5px;
   color: var(--laranja-400);
@@ -1073,11 +1092,12 @@ onMounted(() => {
   color-scheme: dark;
 }
 .campo input:focus { outline: none; border-color: var(--dourado-linha); }
-.campo input::placeholder { color: #5C5248; }
+.campo input::placeholder { color: #5A6376; }
 
 @media (max-width: 700px) {
   .barra-salvar { flex-direction: column; align-items: stretch; text-align: center; }
   .barra-salvar__acoes .btn { flex: 1; }
+  .faixa--almoco { margin-left: 29px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
