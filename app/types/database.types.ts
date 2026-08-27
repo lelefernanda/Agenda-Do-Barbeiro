@@ -29,6 +29,9 @@ export type Barbearia = {
   endereco: string | null
   cidade: string | null
   instagram: string | null
+  logo_url: string | null
+  capa_url: string | null
+  sobre: string | null
   pagamento: FormaPagamento
   vence_em: string | null
   criada_em: string

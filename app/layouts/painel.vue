@@ -94,7 +94,7 @@ const itens = computed<Item[]>(() => {
       { rota: '/painel/caixa', texto: 'Caixa', icone: ICONES.caixa },
       { rota: '/painel/horarios', texto: 'Horários', icone: ICONES.horarios },
       { rota: '/painel/clientes', texto: 'Clientes', icone: ICONES.clientes, emBreve: true },
-      { rota: '/painel/barbearia', texto: 'Minha barbearia', curto: 'Barbearia', icone: ICONES.barbearia, emBreve: true },
+      { rota: '/painel/barbearia', texto: 'Minha barbearia', curto: 'Barbearia', icone: ICONES.barbearia },
     ]
   }
   // barbeiro
