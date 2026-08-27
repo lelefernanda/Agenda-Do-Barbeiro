@@ -683,10 +683,26 @@ onBeforeUnmount(() => observer.value?.disconnect())
   transform: translateX(-58%);
   background: radial-gradient(
     ellipse at center,
-    rgba(59, 130, 246, 0.13) 0%,
-    rgba(59, 130, 246, 0.04) 40%,
+    rgba(59, 130, 246, 0.30) 0%,
+    rgba(59, 130, 246, 0.10) 40%,
     transparent 68%
   );
+  pointer-events: none;
+}
+
+/* A grade fina do topo. Fica atras de tudo, e some conforme desce:
+   perto do brilho ela aparece, no fim do bloco ja nao existe. */
+.heroi::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(126, 176, 250, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(126, 176, 250, 0.08) 1px, transparent 1px);
+  background-size: 28px 28px, 28px 28px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 92%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 92%);
   pointer-events: none;
 }
 
