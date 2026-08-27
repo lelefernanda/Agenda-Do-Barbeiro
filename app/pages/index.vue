@@ -21,7 +21,7 @@ useHead({
       content:
         'Página de agendamento própria pra sua barbearia. O cliente escolhe o barbeiro, o serviço e o horário sozinho. Você abre o painel e vê o dia pronto.',
     },
-    { name: 'theme-color', content: '#0A0A0A' },
+    { name: 'theme-color', content: '#0A0B0D' },
   ],
 })
 
@@ -182,7 +182,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
         <div class="topo__acoes">
           <NuxtLink to="/login" class="link-entrar">Entrar</NuxtLink>
           <a :href="WHATSAPP" target="_blank" rel="noopener" class="btn btn--laranja btn--sm">
-            Falar no WhatsApp
+            <span class="so-largo">Falar no </span>WhatsApp
           </a>
         </div>
       </div>
@@ -573,13 +573,13 @@ onBeforeUnmount(() => observer.value?.disconnect())
 
 .btn--laranja {
   background: var(--laranja);
-  color: #17100A;
-  box-shadow: 0 8px 26px -12px rgba(232, 135, 58, 0.7);
+  color: #FFFFFF;
+  box-shadow: 0 8px 26px -12px rgba(59, 130, 246, 0.7);
 }
 .btn--laranja:hover {
   background: var(--laranja-400);
   transform: translateY(-2px);
-  box-shadow: 0 14px 32px -12px rgba(232, 135, 58, 0.85);
+  box-shadow: 0 14px 32px -12px rgba(59, 130, 246, 0.85);
 }
 
 .btn--fantasma {
@@ -599,7 +599,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(10, 10, 10, 0.82);
+  background: rgba(10, 11, 13, 0.82);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--preto-700);
 }
@@ -683,8 +683,8 @@ onBeforeUnmount(() => observer.value?.disconnect())
   transform: translateX(-58%);
   background: radial-gradient(
     ellipse at center,
-    rgba(212, 175, 55, 0.13) 0%,
-    rgba(212, 175, 55, 0.04) 40%,
+    rgba(59, 130, 246, 0.13) 0%,
+    rgba(59, 130, 246, 0.04) 40%,
     transparent 68%
   );
   pointer-events: none;
@@ -741,7 +741,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
   padding: 26px;
   box-shadow:
     0 40px 80px -40px rgba(0, 0, 0, 0.95),
-    0 0 0 1px rgba(212, 175, 55, 0.08),
+    0 0 0 1px rgba(59, 130, 246, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -786,7 +786,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
   align-items: center;
   gap: 12px;
   padding: 13px 0;
-  border-bottom: 1px solid rgba(31, 31, 31, 0.7);
+  border-bottom: 1px solid rgba(42, 50, 82, 0.7);
   opacity: 0;
   animation: entrar-slot 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: var(--atraso);
@@ -815,16 +815,16 @@ onBeforeUnmount(() => observer.value?.disconnect())
 
 .slot--novo .slot__marca {
   background: var(--laranja);
-  box-shadow: 0 0 0 0 rgba(232, 135, 58, 0.6);
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6);
   animation: pulsar 2s ease-out infinite;
   animation-delay: 1.8s;
 }
 .slot--novo .slot__servico { color: var(--laranja-400); font-weight: 600; }
 
 @keyframes pulsar {
-  0%   { box-shadow: 0 0 0 0 rgba(232, 135, 58, 0.55); }
-  70%  { box-shadow: 0 0 0 9px rgba(232, 135, 58, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(232, 135, 58, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.55); }
+  70%  { box-shadow: 0 0 0 9px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
 }
 
 .agenda__rodape {
@@ -957,7 +957,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
 .recurso--destaque {
   grid-column: span 2;
   background:
-    linear-gradient(135deg, rgba(212, 175, 55, 0.09) 0%, transparent 55%),
+    linear-gradient(135deg, rgba(59, 130, 246, 0.09) 0%, transparent 55%),
     var(--preto-800);
   border-color: var(--dourado-600);
 }
@@ -999,7 +999,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
   border: 1px solid var(--dourado-600);
   border-radius: 12px;
   padding: 36px 34px;
-  box-shadow: 0 30px 70px -40px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 30px 70px -40px rgba(59, 130, 246, 0.3);
 }
 .plano__cabecalho {
   display: flex;
@@ -1089,7 +1089,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
 
 .opcao--destaque {
   border-color: var(--dourado-600);
-  background: linear-gradient(150deg, rgba(212, 175, 55, 0.07) 0%, transparent 60%), var(--preto);
+  background: linear-gradient(150deg, rgba(59, 130, 246, 0.07) 0%, transparent 60%), var(--preto);
 }
 .opcao--destaque:hover { border-color: var(--dourado); }
 
@@ -1101,7 +1101,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #17100A;
+  color: #FFFFFF;
   background: var(--dourado);
   border-radius: 99px;
   padding: 4px 10px;
@@ -1212,7 +1212,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
   position: relative;
   padding: 100px 0;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.12) 0%, transparent 62%),
+    radial-gradient(ellipse at 50% 0%, rgba(59, 130, 246, 0.12) 0%, transparent 62%),
     var(--preto-800);
   border-top: 1px solid var(--preto-700);
 }
@@ -1351,6 +1351,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
     color: var(--branco);
     font-weight: 600;
   }
-  .topo__acoes .btn--sm { padding: 9px 14px; font-size: 13.5px; }
+  .topo__acoes .btn--sm { padding: 9px 15px; font-size: 13.5px; white-space: nowrap; }
+  .so-largo { display: none; }
 }
 </style>
