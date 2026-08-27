@@ -68,8 +68,17 @@ export function useAcesso() {
     carregando.value = false
 
     if (error) {
-      if (import.meta.dev) console.error('[useAcesso] erro no banco:', error)
-      ultimaFalha.value = 'falha_banco'
+      // 401 nao e falha de servidor: e so nao haver sessao neste endereco.
+      // Acontece ao abrir o app por outro IP ou em outro aparelho.
+      const semSessao =
+        (error as { code?: string }).code === '401' ||
+        (error as { status?: number }).status === 401 ||
+        /JWT|not authenticated|Unauthorized/i.test(error.message ?? '')
+
+      if (import.meta.dev && semSessao === false) {
+        console.error('[useAcesso] erro no banco:', error)
+      }
+      ultimaFalha.value = semSessao ? null : 'falha_banco'
       contexto.value = null
       return null
     }
