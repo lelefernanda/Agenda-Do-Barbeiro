@@ -226,12 +226,34 @@ const iniciais = computed(() => {
       <!-- Topo — só no celular -->
       <header class="topo">
         <span class="topo__brasao"><LogoBarba /></span>
-        <span class="topo__nome">{{ contexto?.barbearia_nome || 'Painel Master' }}</span>
+        <button
+          v-if="unidades.length > 1"
+          class="topo__nome topo__nome--troca"
+          @click.stop="listaAberta = !listaAberta"
+        >
+          {{ contexto?.barbearia_nome }}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10l5 5 5-5" /></svg>
+        </button>
+        <span v-else class="topo__nome">{{ contexto?.barbearia_nome || 'Painel Master' }}</span>
 
         <NuxtLink to="/perfil" class="topo__avatar" aria-label="Meu perfil">
           <img v-if="contexto?.foto_url" :src="contexto.foto_url" alt="" />
           <span v-else aria-hidden="true">{{ iniciais }}</span>
         </NuxtLink>
+
+        <div v-if="listaAberta && unidades.length > 1" class="lista-unidades lista-unidades--topo" @click.stop>
+          <p class="lista-unidades__rotulo">Suas unidades</p>
+          <button
+            v-for="u in unidades"
+            :key="u.id"
+            class="unidade-item"
+            :class="{ 'unidade-item--on': u.id === contexto?.barbearia_id }"
+            @click="escolherUnidade(u.id)"
+          >
+            <span class="unidade-item__nome">{{ u.nome }}</span>
+            <span v-if="u.cidade" class="unidade-item__cidade">{{ u.cidade }}</span>
+          </button>
+        </div>
 
         <button class="topo__sair" aria-label="Sair" @click="sair">
           <svg
@@ -605,7 +627,30 @@ const iniciais = computed(() => {
   -webkit-backdrop-filter: blur(18px) saturate(1.3);
   border-bottom: 1px solid var(--linha-suave);
 }
+.topo { position: relative; }
 .topo__brasao { width: 30px; height: 30px; flex-shrink: 0; color: var(--dourado); }
+
+/* No celular o seletor de unidade vira o proprio nome no cabecalho:
+   e o unico lugar onde ele cabe sem roubar espaco da tela. */
+.topo__nome--troca {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--fonte-corpo);
+  text-align: left;
+}
+.topo__nome--troca svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.65; }
+
+.lista-unidades--topo {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(100% + 4px);
+}
 .topo__nome {
   flex: 1;
   min-width: 0;
