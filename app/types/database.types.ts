@@ -34,6 +34,7 @@ export type Barbearia = {
   capa_pos: number | null
   sobre: string | null
   cor: string | null
+  pagamentos: string[] | null
   pagamento: FormaPagamento
   vence_em: string | null
   criada_em: string

@@ -33,6 +33,7 @@ type Loja = {
   capa_pos: number | null
   sobre: string | null
   cor: string | null
+  pagamentos: string[] | null
 }
 
 const { data: loja, refresh } = await useAsyncData<Loja | null>(
@@ -42,7 +43,7 @@ const { data: loja, refresh } = await useAsyncData<Loja | null>(
     const { data } = await supabase
       .from('barbearias')
       .select(
-        'id, nome, slug, telefone, endereco, cidade, instagram, logo_url, capa_url, capa_pos, sobre, cor'
+        'id, nome, slug, telefone, endereco, cidade, instagram, logo_url, capa_url, capa_pos, sobre, cor, pagamentos'
       )
       .eq('id', contexto.value.barbearia_id)
       .maybeSingle()
@@ -68,6 +69,22 @@ const form = reactive({
 const posicao = ref(50)
 const cor = ref(AZUL)
 
+/* As formas de pagamento aceitas. Guardadas como lista, entao dar
+   uma opcao nova depois nao mexe no banco. */
+const FORMAS = [
+  { id: 'dinheiro', nome: 'Dinheiro' },
+  { id: 'pix', nome: 'Pix' },
+  { id: 'debito', nome: 'Cartão de débito' },
+  { id: 'credito', nome: 'Cartão de crédito' },
+]
+const pagamentos = ref<string[]>([])
+
+function virarPagamento(id: string) {
+  const i = pagamentos.value.indexOf(id)
+  if (i === -1) pagamentos.value.push(id)
+  else pagamentos.value.splice(i, 1)
+}
+
 watch(
   loja,
   (l) => {
@@ -79,6 +96,7 @@ watch(
     form.instagram = (l.instagram ?? '').replace('@', '')
     form.sobre = l.sobre ?? ''
     posicao.value = l.capa_pos ?? 50
+    pagamentos.value = [...(l.pagamentos ?? [])]
     cor.value = l.cor ?? AZUL
   },
   { immediate: true }
@@ -112,6 +130,7 @@ async function salvar() {
       sobre: form.sobre.trim() || null,
       capa_pos: Math.round(posicao.value),
       cor: cor.value,
+      pagamentos: pagamentos.value,
     })
     .eq('id', loja.value.id)
   salvando.value = false
@@ -390,6 +409,21 @@ const mudouCapa = computed(
         </div>
       </section>
 
+      <!-- ============ formas de pagamento ============ -->
+      <section class="cartao">
+        <p class="cartao__rotulo">Formas de pagamento</p>
+        <p class="cartao__dica">Marque o que a barbearia aceita. Aparece na sua página.</p>
+        <div class="formas">
+          <button
+            v-for="f in FORMAS"
+            :key="f.id"
+            class="forma"
+            :class="{ 'forma--on': pagamentos.includes(f.id) }"
+            @click="virarPagamento(f.id)"
+          >{{ f.nome }}</button>
+        </div>
+      </section>
+
       <!-- ============ dados ============ -->
       <section class="cartao">
         <p class="cartao__rotulo">Dados</p>
@@ -640,6 +674,30 @@ const mudouCapa = computed(
   cursor: pointer;
 }
 .tirar:hover { color: var(--laranja-400); }
+
+.cartao__dica { margin: -10px 0 14px; font-size: 12.5px; color: var(--cinza-600); line-height: 1.5; }
+
+/* ---------- formas de pagamento ---------- */
+.formas { display: flex; gap: 8px; flex-wrap: wrap; }
+.forma {
+  padding: 10px 16px;
+  min-height: 42px;
+  background: transparent;
+  border: 1px solid var(--linha);
+  border-radius: 99px;
+  color: var(--cinza-600);
+  font-family: var(--fonte-corpo);
+  font-size: 13.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+}
+.forma:hover { border-color: var(--cinza-600); color: var(--cinza); }
+.forma--on {
+  border-color: var(--dourado-linha);
+  background: var(--dourado-suave);
+  color: var(--dourado);
+}
 
 /* ---------- cor ---------- */
 .cor { display: flex; align-items: center; gap: 14px; }

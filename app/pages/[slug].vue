@@ -44,6 +44,7 @@ type Vitrine = {
     capa_pos: number | null
     sobre: string | null
     cor: string | null
+    pagamentos: string[] | null
   }
   servicos: ServicoPublico[]
   atendentes: AtendentePublico[]
@@ -62,6 +63,17 @@ const equipe = computed(() => vitrine.value?.atendentes ?? [])
 const cor = computed(() => loja.value?.cor || '#3B82F6')
 
 const NOMES_DIA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+
+const NOMES_PAGAMENTO: Record<string, string> = {
+  dinheiro: 'Dinheiro',
+  pix: 'Pix',
+  debito: 'Cartão de débito',
+  credito: 'Cartão de crédito',
+}
+
+const pagamentos = computed(() =>
+  (loja.value?.pagamentos ?? []).map((p) => NOMES_PAGAMENTO[p] ?? p)
+)
 
 const aberto = computed(() => vitrine.value?.aberto ?? false)
 const diaHoje = computed(() => vitrine.value?.dia_hoje ?? 0)
@@ -590,6 +602,13 @@ function voltar() {
             </ul>
           </section>
 
+          <section v-if="pagamentos.length" class="secao">
+            <p class="secao__rotulo">Formas de pagamento</p>
+            <div class="pagamentos">
+              <span v-for="p in pagamentos" :key="p" class="pagamento">{{ p }}</span>
+            </div>
+          </section>
+
           <section v-if="loja.endereco || loja.cidade" class="secao">
             <p class="secao__rotulo">Onde fica</p>
             <a
@@ -1115,6 +1134,17 @@ function voltar() {
 .selo__ponto { width: 7px; height: 7px; border-radius: 99px; background: currentColor; flex-shrink: 0; }
 .selo--on { color: #4ADE80; background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.32); }
 .selo--off { color: var(--cinza-600); background: var(--preto-800); border-color: var(--preto-600); }
+
+/* ---------- formas de pagamento ---------- */
+.pagamentos { display: flex; gap: 8px; flex-wrap: wrap; }
+.pagamento {
+  padding: 8px 14px;
+  background: var(--preto-800);
+  border: 1px solid var(--preto-700);
+  border-radius: 99px;
+  font-size: 13px;
+  color: var(--cinza);
+}
 
 /* ---------- horario de atendimento ---------- */
 .horarios { list-style: none; margin: 0; padding: 0; }
