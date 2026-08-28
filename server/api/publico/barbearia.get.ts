@@ -25,7 +25,7 @@ export default defineEventHandler(async (evento) => {
         cancelada some da internet, sem meio-termo. */
   const { data: barbearia, error: erroBarbearia } = await admin
     .from('barbearias')
-    .select('id, nome, slug, status, telefone, endereco, cidade, instagram')
+    .select('id, nome, slug, status, telefone, endereco, cidade, instagram, logo_url, capa_url, capa_pos, sobre, cor')
     .eq('slug', slug.trim().toLowerCase())
     .maybeSingle()
 
@@ -62,6 +62,11 @@ export default defineEventHandler(async (evento) => {
       endereco: barbearia.endereco,
       cidade: barbearia.cidade,
       instagram: barbearia.instagram,
+      logo_url: barbearia.logo_url,
+      capa_url: barbearia.capa_url,
+      capa_pos: barbearia.capa_pos,
+      sobre: barbearia.sobre,
+      cor: barbearia.cor,
     },
     servicos: servicos.data ?? [],
     atendentes: atendentes.data ?? [],

@@ -31,7 +31,9 @@ export type Barbearia = {
   instagram: string | null
   logo_url: string | null
   capa_url: string | null
+  capa_pos: number | null
   sobre: string | null
+  cor: string | null
   pagamento: FormaPagamento
   vence_em: string | null
   criada_em: string

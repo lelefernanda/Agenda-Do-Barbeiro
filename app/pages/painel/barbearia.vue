@@ -3,9 +3,11 @@
  * Minha barbearia — onde o dono monta a cara da própria loja.
  *
  * Tudo que se edita aqui aparece na página pública de agendamento,
- * que é o link que ele vai colar na bio do Instagram. Por isso a tela
- * mostra o endereço dessa página logo no topo, com um botão de copiar:
- * é o que ele mais vai querer ter à mão.
+ * que é o link que ele vai colar na bio do Instagram.
+ *
+ * Duas coisas acontecem sozinhas quando ele sobe a capa: a página
+ * ganha a cor da foto, e ele pode arrastar a imagem para escolher que
+ * parte dela aparece na faixa.
  */
 import type { Database } from '~/types/database.types'
 
@@ -14,6 +16,9 @@ useHead({ title: 'Minha barbearia — Agenda Do Barbeiro' })
 
 const supabase = useSupabaseClient<Database>()
 const { contexto, ehDono, carregar } = useAcesso()
+const { corDe } = useCorDaFoto()
+
+const AZUL = '#3B82F6'
 
 type Loja = {
   id: string
@@ -25,7 +30,9 @@ type Loja = {
   instagram: string | null
   logo_url: string | null
   capa_url: string | null
+  capa_pos: number | null
   sobre: string | null
+  cor: string | null
 }
 
 const { data: loja, refresh } = await useAsyncData<Loja | null>(
@@ -34,7 +41,9 @@ const { data: loja, refresh } = await useAsyncData<Loja | null>(
     if (!contexto.value?.barbearia_id) return null
     const { data } = await supabase
       .from('barbearias')
-      .select('id, nome, slug, telefone, endereco, cidade, instagram, logo_url, capa_url, sobre')
+      .select(
+        'id, nome, slug, telefone, endereco, cidade, instagram, logo_url, capa_url, capa_pos, sobre, cor'
+      )
       .eq('id', contexto.value.barbearia_id)
       .maybeSingle()
     return (data ?? null) as Loja | null
@@ -54,6 +63,11 @@ const form = reactive({
   sobre: '',
 })
 
+/* A posição da capa e a cor moram fora do form porque mudam por
+   arrasto e por upload, não por digitação. */
+const posicao = ref(50)
+const cor = ref(AZUL)
+
 watch(
   loja,
   (l) => {
@@ -64,6 +78,8 @@ watch(
     form.cidade = l.cidade ?? ''
     form.instagram = (l.instagram ?? '').replace('@', '')
     form.sobre = l.sobre ?? ''
+    posicao.value = l.capa_pos ?? 50
+    cor.value = l.cor ?? AZUL
   },
   { immediate: true }
 )
@@ -83,10 +99,6 @@ async function salvar() {
     erro.value = 'O nome da barbearia não pode ficar vazio.'
     return
   }
-  if (form.sobre.length > 400) {
-    erro.value = 'A apresentação passou de 400 caracteres.'
-    return
-  }
 
   salvando.value = true
   const { error } = await supabase
@@ -98,6 +110,8 @@ async function salvar() {
       cidade: form.cidade.trim() || null,
       instagram: form.instagram.trim().replace('@', '') || null,
       sobre: form.sobre.trim() || null,
+      capa_pos: Math.round(posicao.value),
+      cor: cor.value,
     })
     .eq('id', loja.value.id)
   salvando.value = false
@@ -128,12 +142,27 @@ async function enviarFoto(tipo: 'logo' | 'capa', e: Event) {
   erroFoto.value = ''
   enviando.value = tipo
 
+  /* A cor sai da capa antes do envio, aproveitando que a imagem já
+     está aqui no navegador. Se a foto não tiver cor suficiente, a
+     função devolve nulo e a barbearia fica no azul. */
+  if (tipo === 'capa') {
+    const detectada = await corDe(arquivo)
+    if (detectada) cor.value = detectada
+    posicao.value = 50
+  }
+
   const corpo = new FormData()
   corpo.append('tipo', tipo)
   corpo.append('foto', arquivo)
 
   try {
     await $fetch('/api/barbearia/foto', { method: 'POST', body: corpo })
+    if (tipo === 'capa' && loja.value) {
+      await supabase
+        .from('barbearias')
+        .update({ cor: cor.value, capa_pos: 50 })
+        .eq('id', loja.value.id)
+    }
     await refresh()
   } catch (err) {
     const m = err as { statusMessage?: string; data?: { statusMessage?: string } }
@@ -157,6 +186,39 @@ async function tirarFoto(tipo: 'logo' | 'capa') {
   } finally {
     enviando.value = null
   }
+}
+
+/* ------------------------------------------------------------
+   Arrastar a capa
+
+   A foto é maior que a faixa que a mostra. Arrastar para cima e para
+   baixo escolhe qual parte dela fica visível — é o mesmo princípio do
+   background-position, só que com o dedo.
+   ------------------------------------------------------------ */
+const arrastando = ref(false)
+const molduraCapa = ref<HTMLElement | null>(null)
+let inicioY = 0
+let inicioPos = 50
+
+function comecarArrasto(e: PointerEvent) {
+  if (!loja.value?.capa_url) return
+  arrastando.value = true
+  inicioY = e.clientY
+  inicioPos = posicao.value
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+}
+
+function moverArrasto(e: PointerEvent) {
+  if (!arrastando.value) return
+  const altura = molduraCapa.value?.clientHeight ?? 150
+  /* Percorrer a altura da moldura duas vezes cobre a foto inteira:
+     dá controle fino sem precisar arrastar meio metro. */
+  const delta = ((e.clientY - inicioY) / (altura * 2)) * 100
+  posicao.value = Math.min(100, Math.max(0, inicioPos - delta))
+}
+
+function terminarArrasto() {
+  arrastando.value = false
 }
 
 /* ------------------------------------------------------------
@@ -184,6 +246,10 @@ const iniciais = computed(() => {
   const n = form.nome || loja.value?.nome || ''
   return n.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
 })
+
+const mudouCapa = computed(
+  () => !!loja.value && (loja.value.capa_pos ?? 50) !== Math.round(posicao.value)
+)
 </script>
 
 <template>
@@ -191,7 +257,7 @@ const iniciais = computed(() => {
     <header class="topo">
       <h1 class="titulo">Minha barbearia</h1>
       <p class="subtitulo">
-        O que você escreve aqui é o que o cliente vê na página de agendamento.
+        O que você monta aqui é o que o cliente vê na página de agendamento.
       </p>
     </header>
 
@@ -223,13 +289,35 @@ const iniciais = computed(() => {
         <p class="cartao__rotulo">Imagens</p>
 
         <div class="capa">
-          <img v-if="loja.capa_url" :src="loja.capa_url" alt="" class="capa__img" />
-          <div v-else class="capa__vazia">
-            <span>Foto de capa</span>
-            <small>A foto do topo da sua página. Use uma imagem larga da barbearia.</small>
+          <div
+            ref="molduraCapa"
+            class="capa__moldura"
+            :class="{ 'capa__moldura--arrastando': arrastando }"
+            @pointerdown="comecarArrasto"
+            @pointermove="moverArrasto"
+            @pointerup="terminarArrasto"
+            @pointercancel="terminarArrasto"
+          >
+            <img
+              v-if="loja.capa_url"
+              :src="loja.capa_url"
+              alt=""
+              class="capa__img"
+              :style="{ objectPosition: `center ${posicao}%` }"
+              draggable="false"
+            />
+            <div v-else class="capa__vazia">
+              <span>Foto de capa</span>
+              <small>A faixa do topo da sua página. Use uma foto larga da barbearia.</small>
+            </div>
+
+            <span v-if="loja.capa_url" class="capa__dica">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4" /></svg>
+              arraste para enquadrar
+            </span>
           </div>
 
-          <div class="logo">
+          <div class="logo" :style="{ color: cor }">
             <img v-if="loja.logo_url" :src="loja.logo_url" alt="" />
             <template v-else>{{ iniciais }}</template>
           </div>
@@ -275,6 +363,30 @@ const iniciais = computed(() => {
               @click="tirarFoto('logo')"
             >tirar</button>
           </div>
+        </div>
+
+        <p v-if="mudouCapa" class="capa__aviso">
+          O enquadramento mudou. Clique em Salvar lá embaixo para valer.
+        </p>
+      </section>
+
+      <!-- ============ cor ============ -->
+      <section class="cartao">
+        <p class="cartao__rotulo">Cor da sua página</p>
+
+        <div class="cor">
+          <span class="cor__bola" :style="{ background: cor }" />
+          <div class="cor__texto">
+            <p class="cor__titulo">{{ cor === AZUL ? 'Azul padrão' : 'Tirada da sua capa' }}</p>
+            <p class="cor__apoio">
+              {{ cor === AZUL
+                ? 'Suba uma foto de capa e a página pega a cor dela sozinha.'
+                : 'É a cor que o cliente vê nos botões e destaques da sua página.' }}
+            </p>
+          </div>
+          <button v-if="cor !== AZUL" class="btn btn--pequeno btn--fantasma" @click="cor = AZUL">
+            Usar azul
+          </button>
         </div>
       </section>
 
@@ -436,25 +548,33 @@ const iniciais = computed(() => {
 }
 
 /* ---------- capa e logo ---------- */
-.capa {
+.capa { position: relative; margin-bottom: 46px; }
+
+.capa__moldura {
   position: relative;
-  margin-bottom: 46px;
+  height: 150px;
   border-radius: 14px;
-  overflow: visible;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
 }
+.capa__moldura--arrastando { cursor: grabbing; }
+
 .capa__img {
   width: 100%;
-  height: 150px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 14px;
+  pointer-events: none;
 }
+
 .capa__vazia {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  height: 150px;
+  height: 100%;
   padding: 0 24px;
   background: rgba(0, 0, 0, 0.25);
   border: 1px dashed var(--linha);
@@ -463,6 +583,30 @@ const iniciais = computed(() => {
 }
 .capa__vazia span { font-size: 14px; font-weight: 650; color: var(--cinza); }
 .capa__vazia small { font-size: 12px; color: var(--cinza-600); line-height: 1.5; max-width: 40ch; }
+
+.capa__dica {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #FFFFFF;
+  pointer-events: none;
+}
+.capa__dica svg { width: 12px; height: 12px; }
+
+.capa__aviso {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  color: var(--dourado);
+}
 
 .logo {
   position: absolute;
@@ -477,7 +621,6 @@ const iniciais = computed(() => {
   overflow: hidden;
   background: var(--preto-800);
   border: 3px solid var(--couro, #0A0B0D);
-  color: var(--dourado);
   font-size: 22px;
   font-weight: 800;
 }
@@ -496,6 +639,19 @@ const iniciais = computed(() => {
   cursor: pointer;
 }
 .tirar:hover { color: var(--laranja-400); }
+
+/* ---------- cor ---------- */
+.cor { display: flex; align-items: center; gap: 14px; }
+.cor__bola {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 99px;
+  border: 1px solid var(--linha);
+}
+.cor__texto { flex: 1; min-width: 0; }
+.cor__titulo { margin: 0; font-size: 14.5px; font-weight: 650; color: var(--branco); }
+.cor__apoio { margin: 3px 0 0; font-size: 12.5px; color: var(--cinza-600); line-height: 1.5; }
 
 /* ---------- campos ---------- */
 .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
@@ -571,6 +727,7 @@ const iniciais = computed(() => {
   .grade { grid-template-columns: 1fr; }
   .cartao__acoes { flex-direction: column-reverse; align-items: stretch; }
   .cartao__acoes .btn { width: 100%; }
+  .cor { flex-wrap: wrap; }
 }
 
 @media (prefers-reduced-motion: reduce) {
