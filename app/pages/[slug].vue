@@ -47,6 +47,9 @@ type Vitrine = {
   }
   servicos: ServicoPublico[]
   atendentes: AtendentePublico[]
+  semana: { dia: number; abre: string; fecha: string }[]
+  aberto: boolean
+  dia_hoje: number
 }
 
 const { data: vitrine, error: erroVitrine } = await useFetch<Vitrine>('/api/publico/barbearia', {
@@ -57,6 +60,27 @@ const loja = computed(() => vitrine.value?.barbearia ?? null)
 const serv = computed(() => vitrine.value?.servicos ?? [])
 const equipe = computed(() => vitrine.value?.atendentes ?? [])
 const cor = computed(() => loja.value?.cor || '#3B82F6')
+
+const NOMES_DIA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+
+const aberto = computed(() => vitrine.value?.aberto ?? false)
+const diaHoje = computed(() => vitrine.value?.dia_hoje ?? 0)
+
+const semana = computed(() => {
+  const bruta = vitrine.value?.semana ?? []
+  if (!bruta.length) return []
+  const ordem = [1, 2, 3, 4, 5, 6, 0]
+  return ordem.map((d) => {
+    const achado = bruta.find((x) => x.dia === d)
+    return {
+      dia: d,
+      nome: NOMES_DIA[d]!,
+      faixa: achado ? `${achado.abre} — ${achado.fecha}` : 'Fechado',
+      aberto: !!achado,
+      hoje: d === diaHoje.value,
+    }
+  })
+})
 
 useHead(() => ({
   title: loja.value ? `${loja.value.nome} — agendar horário` : 'Agendar horário',
@@ -541,6 +565,24 @@ function voltar() {
                 <span class="pessoa__nome">{{ a.nome }}</span>
               </div>
             </div>
+          </section>
+
+          <section v-if="semana.length" class="secao">
+            <p class="secao__rotulo">Horário de atendimento</p>
+            <ul class="horarios">
+              <li
+                v-for="d in semana"
+                :key="d.dia"
+                class="horario"
+                :class="{ 'horario--hoje': d.hoje, 'horario--fechado': !d.aberto }"
+              >
+                <span class="horario__dia">
+                  {{ d.nome }}
+                  <span v-if="d.hoje" class="horario__selo">hoje</span>
+                </span>
+                <span class="horario__faixa">{{ d.faixa }}</span>
+              </li>
+            </ul>
           </section>
 
           <section v-if="loja.endereco || loja.cidade" class="secao">
@@ -1051,6 +1093,48 @@ function voltar() {
   text-align: center;
   font-size: 11.5px;
   color: var(--cinza-600);
+}
+
+/* ---------- aberto agora ---------- */
+.selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 6px 13px;
+  border-radius: 99px;
+  font-size: 12.5px;
+  font-weight: 650;
+  border: 1px solid transparent;
+}
+.selo__ponto { width: 7px; height: 7px; border-radius: 99px; background: currentColor; flex-shrink: 0; }
+.selo--on { color: #4ADE80; background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.32); }
+.selo--off { color: var(--cinza-600); background: var(--preto-800); border-color: var(--preto-600); }
+
+/* ---------- horario de atendimento ---------- */
+.horarios { list-style: none; margin: 0; padding: 0; }
+.horario {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 0;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--preto-800);
+}
+.horario:last-child { border-bottom: none; }
+.horario__dia { display: flex; align-items: center; gap: 8px; color: var(--cinza); }
+.horario__faixa { color: var(--cinza); font-variant-numeric: tabular-nums; }
+.horario--hoje .horario__dia,
+.horario--hoje .horario__faixa { color: var(--branco); font-weight: 700; }
+.horario--fechado .horario__faixa { color: var(--cinza-600); }
+.horario__selo {
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--marca-suave);
+  color: var(--marca);
+  font-size: 10.5px;
+  font-weight: 700;
 }
 
 /* ---------- servicos em grade ---------- */
