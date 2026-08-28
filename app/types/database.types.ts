@@ -79,6 +79,7 @@ export type Servico = {
 export type Jornada = {
   id: string
   barbeiro_id: string
+  barbearia_id: string
   dia_semana: number
   inicio: string
   fim: string

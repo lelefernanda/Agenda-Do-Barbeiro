@@ -25,6 +25,8 @@ type Corpo = {
   dono_nome?: string
   dono_email?: string
   dono_telefone?: string
+  /** Quando informado, a barbearia vira uma unidade nova deste dono. */
+  dono_id?: string
 }
 
 /**
@@ -86,16 +88,21 @@ export default defineEventHandler(async (event) => {
   const donoEmail = (corpo.dono_email ?? '').trim().toLowerCase()
   const donoTelefone = soDigitos(corpo.dono_telefone ?? '')
 
+  /* Quando o master informa um dono que ja existe, esta barbearia e
+     uma UNIDADE NOVA dele. Nao se cria usuario nem perfil: so a loja e
+     o vinculo. E assim que uma barbearia com filiais funciona. */
+  const donoExistente = (corpo.dono_id ?? '').trim() || null
+
   if (nome.length < 2) {
     throw createError({ statusCode: 400, statusMessage: 'Informe o nome da barbearia.' })
   }
   if (slug.length < 2) {
     throw createError({ statusCode: 400, statusMessage: 'O endereço da página ficou inválido.' })
   }
-  if (donoNome.length < 2) {
+  if (!donoExistente && donoNome.length < 2) {
     throw createError({ statusCode: 400, statusMessage: 'Informe o nome do dono.' })
   }
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(donoEmail)) {
+  if (!donoExistente && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(donoEmail)) {
     throw createError({ statusCode: 400, statusMessage: 'E-mail do dono inválido.' })
   }
 
@@ -152,6 +159,37 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // ---------- 4. dono que ja existe: so vincular ----------
+  if (donoExistente) {
+    const { data: perfilDono } = await admin
+      .from('perfis')
+      .select('id, nome, papel, status')
+      .eq('id', donoExistente)
+      .maybeSingle()
+
+    if (!perfilDono || perfilDono.papel !== 'dono' || perfilDono.status !== 'ativo') {
+      await admin.from('barbearias').delete().eq('id', barbearia.id)
+      throw createError({ statusCode: 400, statusMessage: 'Dono inválido.' })
+    }
+
+    const { error: erroVinculo } = await admin
+      .from('donos_barbearias')
+      .upsert(
+        { perfil_id: donoExistente, barbearia_id: barbearia.id },
+        { onConflict: 'perfil_id,barbearia_id' }
+      )
+
+    if (erroVinculo) {
+      await admin.from('barbearias').delete().eq('id', barbearia.id)
+      throw createError({ statusCode: 500, statusMessage: erroVinculo.message })
+    }
+
+    return {
+      barbearia,
+      dono: { nome: perfilDono.nome, vinculado: true },
+    }
+  }
+
   // ---------- 4. criar o usuario do dono ----------
   const senha = senhaTemporaria()
 
@@ -183,6 +221,15 @@ export default defineEventHandler(async (event) => {
     telefone: donoTelefone,
     status: 'ativo',
   })
+
+  // O vinculo e o que permite este dono administrar esta unidade.
+  // Um dono pode ter varias barbearias: cada uma vira uma linha aqui.
+  await admin
+    .from('donos_barbearias')
+    .upsert(
+      { perfil_id: criado.user.id, barbearia_id: barbearia.id },
+      { onConflict: 'perfil_id,barbearia_id' }
+    )
 
   if (erroPerfil) {
     // desfaz tudo, na ordem inversa

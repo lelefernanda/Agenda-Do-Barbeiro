@@ -677,7 +677,7 @@ function voltar() {
 /* ---------- capa ---------- */
 .capa {
   width: 100%;
-  height: clamp(150px, 40vw, 210px);
+  height: clamp(170px, 44vw, 250px);
   overflow: hidden;
   background: var(--preto-800);
 }
@@ -690,7 +690,7 @@ function voltar() {
 .perfil__logo {
   width: 92px;
   height: 92px;
-  margin: -46px auto 14px;
+  margin: -34px auto 14px;
   display: flex;
   align-items: center;
   justify-content: center;

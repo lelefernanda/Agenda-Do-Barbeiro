@@ -15,7 +15,28 @@ useHead({
   ],
 })
 
-const { contexto, sair, ehMaster, ehDono } = useAcesso()
+const { contexto, sair, ehMaster, ehDono, trocarUnidade } = useAcesso()
+
+/* As unidades que este dono administra. Com uma so, o nome da
+   barbearia continua sendo texto simples: o seletor so aparece para
+   quem tem de fato mais de uma loja. */
+type Unidade = { id: string; nome: string; slug: string; cidade: string | null }
+
+const supabaseUnidades = useSupabaseClient()
+const listaAberta = ref(false)
+const unidades = ref<Unidade[]>([])
+
+onMounted(async () => {
+  const { data } = await supabaseUnidades.rpc('minhas_barbearias')
+  unidades.value = (data ?? []) as Unidade[]
+})
+
+async function escolherUnidade(id: string) {
+  listaAberta.value = false
+  if (id === contexto.value?.barbearia_id) return
+  await trocarUnidade(id)
+  await navigateTo('/painel')
+}
 
 /*
  * Ícones de traço, desenhados direto no código.
@@ -130,9 +151,32 @@ const iniciais = computed(() => {
         </span>
       </NuxtLink>
 
-      <p v-if="contexto?.barbearia_nome" class="lado__barbearia">
-        {{ contexto.barbearia_nome }}
-      </p>
+      <div v-if="contexto?.barbearia_nome" class="unidade">
+        <button
+          v-if="unidades.length > 1"
+          class="lado__barbearia barbearia--troca"
+          @click.stop="listaAberta = !listaAberta"
+        >
+          <span class="barbearia__nome">{{ contexto.barbearia_nome }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10l5 5 5-5" /></svg>
+        </button>
+
+        <p v-else class="lado__barbearia">{{ contexto.barbearia_nome }}</p>
+
+        <div v-if="listaAberta" class="lista-unidades" @click.stop>
+          <p class="lista-unidades__rotulo">Suas unidades</p>
+          <button
+            v-for="u in unidades"
+            :key="u.id"
+            class="unidade-item"
+            :class="{ 'unidade-item--on': u.id === contexto?.barbearia_id }"
+            @click="escolherUnidade(u.id)"
+          >
+            <span class="unidade-item__nome">{{ u.nome }}</span>
+            <span v-if="u.cidade" class="unidade-item__cidade">{{ u.cidade }}</span>
+          </button>
+        </div>
+      </div>
 
       <nav class="menu">
         <template v-for="i in itens" :key="i.rota">
@@ -236,6 +280,68 @@ const iniciais = computed(() => {
 </template>
 
 <style scoped>
+/* ---------- seletor de unidade ---------- */
+.unidade { position: relative; }
+
+.barbearia--troca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.barbearia--troca svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.7; }
+.barbearia__nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.lista-unidades {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 60;
+  padding: 8px;
+  background: rgba(16, 22, 42, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--linha);
+  border-radius: 14px;
+  box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.8);
+}
+.lista-unidades__rotulo {
+  margin: 4px 8px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cinza-600);
+}
+
+.unidade-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--fonte-corpo);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease;
+}
+.unidade-item:hover { background: rgba(255, 255, 255, 0.05); }
+.unidade-item--on { background: var(--dourado-suave); }
+.unidade-item__nome { font-size: 14px; font-weight: 650; color: var(--branco); }
+.unidade-item--on .unidade-item__nome { color: var(--dourado); }
+.unidade-item__cidade { font-size: 11.5px; color: var(--cinza-600); }
+
+.lista-enter-active, .lista-leave-active { transition: opacity 0.14s ease, transform 0.14s ease; }
+.lista-enter-from, .lista-leave-to { opacity: 0; transform: translateY(-4px); }
+
 /*
  * ============================================================
  *  LINGUAGEM VISUAL "COURO" — vale para todo o painel.

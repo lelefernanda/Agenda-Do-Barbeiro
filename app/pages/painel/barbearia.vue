@@ -266,6 +266,17 @@ const iniciais = computed(() => {
   return n.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
 })
 
+/* O exemplo do campo Instagram sai do proprio nome digitado, para o
+   dono ver o formato certo em vez de um nome que nao e dele. */
+const exemploInstagram = computed(() => {
+  const base = (form.nome || 'suabarbearia')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+  return base || 'suabarbearia'
+})
+
 const mudouCapa = computed(
   () => !!loja.value && (loja.value.capa_pos ?? 50) !== Math.round(posicao.value)
 )
@@ -455,7 +466,7 @@ const mudouCapa = computed(
 
           <label class="campo">
             <span>Instagram</span>
-            <input v-model="form.instagram" placeholder="inkabarbershop" :disabled="salvando" />
+            <input v-model="form.instagram" :placeholder="exemploInstagram" :disabled="salvando" />
           </label>
 
           <label class="campo">
@@ -477,8 +488,9 @@ const mudouCapa = computed(
         </div>
 
         <p class="nota">
-          O endereço da sua página não pode ser alterado por aqui. Se precisar
-          mudar, fale com o suporte.
+          O endereço da sua página acompanha o nome da barbearia. Endereços
+          antigos continuam funcionando, então nenhum link que você já
+          compartilhou deixa de abrir.
         </p>
       </section>
     </template>

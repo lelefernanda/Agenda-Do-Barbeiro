@@ -40,10 +40,13 @@ const { data: barbeiros } = await useAsyncData<BarbeiroResumo[]>(
       .select('id, nome, foto_url')
       .eq('atende', true)
       .eq('status', 'ativo')
+      .or(`barbearia_id.eq.${contexto.value?.barbearia_id},id.eq.${contexto.value?.perfil_id}`)
       .order('nome', { ascending: true })
     return (data ?? []) as BarbeiroResumo[]
   },
-  { default: () => [] as BarbeiroResumo[] }
+  // Refaz a busca quando o contexto chega e quando o dono troca de
+  // unidade. Sem isto, a lista era montada antes de existir barbearia.
+  { default: () => [] as BarbeiroResumo[], watch: [contexto] }
 )
 
 const selecionado = ref<string | null>(null)
@@ -75,7 +78,8 @@ const { data: carga, refresh } = await useAsyncData(
       supabase
         .from('jornadas')
         .select('dia_semana, inicio, fim')
-        .eq('barbeiro_id', selecionado.value),
+        .eq('barbeiro_id', selecionado.value)
+        .eq('barbearia_id', contexto.value?.barbearia_id ?? ''),
       supabase
         .from('bloqueios')
         .select('id, inicio, fim, motivo')
@@ -260,11 +264,12 @@ async function salvarSemana() {
   erroSemana.value = validar()
   if (erroSemana.value) return
 
-  const linhas: { barbeiro_id: string; dia_semana: number; inicio: string; fim: string }[] = []
+  const linhas: { barbeiro_id: string; barbearia_id: string; dia_semana: number; inicio: string; fim: string }[] = []
   for (const d of DIAS) {
     for (const f of faixasDe(d.n)) {
       linhas.push({
         barbeiro_id: selecionado.value,
+        barbearia_id: contexto.value?.barbearia_id ?? '',
         dia_semana: d.n,
         inicio: f.inicio,
         fim: f.fim,
@@ -278,6 +283,7 @@ async function salvarSemana() {
     .from('jornadas')
     .delete()
     .eq('barbeiro_id', selecionado.value)
+    .eq('barbearia_id', contexto.value?.barbearia_id ?? '')
 
   if (erroLimpa) {
     salvandoSemana.value = false

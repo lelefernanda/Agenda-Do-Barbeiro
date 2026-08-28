@@ -66,10 +66,11 @@ const { data: barbeiros } = await useAsyncData<BarbeiroResumo[]>(
       .select('id, nome, foto_url')
       .eq('atende', true)
       .eq('status', 'ativo')
+      .or(`barbearia_id.eq.${contexto.value?.barbearia_id},id.eq.${contexto.value?.perfil_id}`)
       .order('nome', { ascending: true })
     return (data ?? []) as BarbeiroResumo[]
   },
-  { default: () => [] as BarbeiroResumo[] }
+  { default: () => [] as BarbeiroResumo[], watch: [contexto] }
 )
 
 const selecionado = ref<string | null>(null)
@@ -114,6 +115,7 @@ const { data: carga, refresh } = await useAsyncData(
         .from('jornadas')
         .select('inicio, fim')
         .eq('barbeiro_id', selecionado.value)
+        .eq('barbearia_id', contexto.value?.barbearia_id ?? '')
         .eq('dia_semana', iniDia.getDay()),
       supabase
         .from('bloqueios')

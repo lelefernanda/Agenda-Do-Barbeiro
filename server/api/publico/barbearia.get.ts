@@ -80,6 +80,7 @@ export default defineEventHandler(async (evento) => {
     const { data: jornadas } = await admin
       .from('jornadas')
       .select('dia_semana, inicio, fim')
+      .eq('barbearia_id', barbearia.id)
       .in('barbeiro_id', idsAtendentes)
 
     const porDia = new Map<number, { abre: number; fecha: number }>()

@@ -38,6 +38,7 @@ const form = reactive({
   cidade: '',
   telefone: '',        // WhatsApp comercial: onde os clientes chegam
   pagamento: 'mensal' as FormaPagamento,
+  dono_id: '',
   dono_nome: '',
   dono_email: '',
   dono_telefone: '',   // WhatsApp pessoal do dono: por onde vai a senha
@@ -65,6 +66,29 @@ function paraSlug(bruto: string): string {
 
 // o slug acompanha o nome enquanto nao for editado na mao
 const slugManual = ref(false)
+
+/* Uma barbearia nova pode ser de um dono novo ou uma unidade a mais de
+   um dono que ja e cliente. No segundo caso nao se cria acesso nenhum:
+   ele entra com o login que ja tem e troca de unidade no painel. */
+const donoExistente = ref(false)
+
+type DonoResumo = { id: string; nome: string; barbearia_nome: string | null }
+
+const { data: donos } = await useAsyncData<DonoResumo[]>(
+  'master-donos',
+  async () => {
+    const { data, error } = await supabase
+      .from('perfis')
+      .select('id, nome')
+      .eq('papel', 'dono')
+      .eq('status', 'ativo')
+      .order('nome')
+    if (error) console.error('[donos]', error)
+    return ((data ?? []) as { id: string; nome: string }[])
+      .map((d) => ({ id: d.id, nome: d.nome, barbearia_nome: null }))
+  },
+  { default: () => [] as DonoResumo[] }
+)
 watch(
   () => form.nome,
   (n) => { if (!slugManual.value) form.slug = paraSlug(n) }
@@ -82,7 +106,7 @@ function limpar() {
   Object.assign(form, {
     nome: '', slug: '', endereco: '', cidade: '', telefone: '',
     pagamento: 'mensal' as FormaPagamento,
-    dono_nome: '', dono_email: '', dono_telefone: '',
+    dono_id: '', dono_nome: '', dono_email: '', dono_telefone: '',
   })
   slugManual.value = false
   erro.value = ''
@@ -288,16 +312,41 @@ function dataBr(iso: string) {
       <div class="grade">
         <label class="campo">
           <span>Nome</span>
-          <input v-model="form.dono_nome" placeholder="José da Silva" :disabled="enviando" />
+          <div class="escolha">
+            <button
+              class="escolha__opcao"
+              :class="{ 'escolha__opcao--on': !donoExistente }"
+              @click="donoExistente = false; form.dono_id = ''"
+            >Dono novo</button>
+            <button
+              class="escolha__opcao"
+              :class="{ 'escolha__opcao--on': donoExistente }"
+              @click="donoExistente = true"
+            >Já é meu cliente</button>
+          </div>
+
+          <select
+            v-if="donoExistente"
+            v-model="form.dono_id"
+            class="dono-select"
+            :disabled="enviando"
+          >
+            <option value="">Escolha o dono…</option>
+            <option v-for="d in donos" :key="d.id" :value="d.id">
+              {{ d.nome }}{{ d.barbearia_nome ? ` — ${d.barbearia_nome}` : '' }}
+            </option>
+          </select>
+
+          <input v-else v-model="form.dono_nome" placeholder="José da Silva" :disabled="enviando" />
         </label>
         <label class="campo">
           <span>E-mail de acesso</span>
-          <input v-model="form.dono_email" type="email" placeholder="jose@email.com" :disabled="enviando" />
+          <input v-if="!donoExistente" v-model="form.dono_email" type="email" placeholder="jose@email.com" :disabled="enviando" />
         </label>
 
         <label class="campo">
           <span>WhatsApp pessoal</span>
-          <input v-model="form.dono_telefone" placeholder="(19) 99999-9999" :disabled="enviando" />
+          <input v-if="!donoExistente" v-model="form.dono_telefone" placeholder="(19) 99999-9999" :disabled="enviando" />
           <small class="dica">Por onde você manda a senha e fala com ele.</small>
         </label>
       </div>
@@ -393,6 +442,41 @@ function dataBr(iso: string) {
 </template>
 
 <style scoped>
+/* ---------- dono novo ou existente ---------- */
+.escolha { display: flex; gap: 7px; margin-bottom: 12px; }
+.escolha__opcao {
+  flex: 1;
+  padding: 10px 12px;
+  min-height: 42px;
+  background: transparent;
+  border: 1px solid var(--linha, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  color: var(--cinza-600);
+  font-family: var(--fonte-corpo);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+}
+.escolha__opcao--on {
+  border-color: var(--laranja);
+  background: var(--dourado-suave, rgba(59,130,246,0.14));
+  color: var(--laranja);
+}
+
+.dono-select {
+  width: 100%;
+  padding: 12px 13px;
+  min-height: 44px;
+  font-family: var(--fonte-corpo);
+  font-size: 15px;
+  color: var(--branco);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--linha, rgba(255,255,255,0.08));
+  border-radius: var(--raio, 12px);
+}
+.dono-select:focus { outline: none; border-color: var(--laranja); }
+
 .topo {
   display: flex;
   align-items: flex-end;

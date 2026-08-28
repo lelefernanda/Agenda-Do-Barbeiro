@@ -51,6 +51,15 @@ export function useAcesso() {
   // "conta nao liberada" de "servidor fora do ar"
   const ultimaFalha = useState<string | null>('contexto-falha', () => null)
 
+  /* Qual unidade o dono esta administrando agora.
+
+     Um dono pode ter mais de uma barbearia. O banco decide qual mostrar,
+     mas so aceita a escolhida se ela realmente pertencer a ele — a
+     conferencia mora la, nao aqui, para ninguem trocar de loja mexendo
+     no navegador. O valor fica guardado para a escolha sobreviver ao
+     recarregar a pagina. */
+  const unidade = useState<string | null>('contexto-unidade', () => null)
+
   /**
    * Busca o contexto no banco.
    *
@@ -64,7 +73,13 @@ export function useAcesso() {
     if (contexto.value && !forcar) return contexto.value
 
     carregando.value = true
-    const { data, error } = await supabase.rpc('meu_contexto')
+    const alvo =
+      unidade.value ??
+      (import.meta.client ? localStorage.getItem('unidade') : null)
+
+    const { data, error } = await supabase.rpc('meu_contexto', {
+      barbearia_alvo: alvo,
+    })
     carregando.value = false
 
     if (error) {
@@ -91,7 +106,21 @@ export function useAcesso() {
 
     ultimaFalha.value = null
     contexto.value = data as Contexto
+    unidade.value = contexto.value.barbearia_id
     return contexto.value
+  }
+
+  /** Troca a unidade que o dono esta administrando. */
+  async function trocarUnidade(barbeariaId: string) {
+    /* A escolha e gravada NO BANCO, nao so aqui. E o banco que decide o
+       que cada consulta enxerga: sem isso, o nome da unidade trocava na
+       tela mas os dados continuavam sendo os da outra loja. A funcao so
+       aceita barbearias que esta pessoa realmente administra. */
+    await supabase.rpc('trocar_unidade', { alvo: barbeariaId })
+
+    unidade.value = barbeariaId
+    if (import.meta.client) localStorage.setItem('unidade', barbeariaId)
+    await carregar(true)
   }
 
   function rotaInicial(ctx: Contexto | null = contexto.value): string {
@@ -112,6 +141,8 @@ export function useAcesso() {
     ultimaFalha,
     carregar,
     rotaInicial,
+    unidade,
+    trocarUnidade,
     sair,
     ehMaster: computed(() => contexto.value?.papel === 'master'),
     ehDono: computed(() => contexto.value?.papel === 'dono'),
