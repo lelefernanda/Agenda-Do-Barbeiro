@@ -355,6 +355,11 @@ function voltar() {
         <h1 class="perfil__nome">{{ loja.nome }}</h1>
         <p class="perfil__categoria">{{ categoria }}</p>
         <p v-if="loja.endereco" class="perfil__endereco">{{ loja.endereco }}</p>
+        <span v-if="semana.length" class="selo" :class="aberto ? 'selo--on' : 'selo--off'">
+          <span class="selo__ponto" />
+          {{ aberto ? 'Aberto agora' : 'Fechado agora' }}
+        </span>
+
         <p v-if="loja.sobre" class="perfil__sobre">{{ loja.sobre }}</p>
 
         <div v-if="!pronto" class="acoes">
