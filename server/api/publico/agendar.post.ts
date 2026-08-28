@@ -92,12 +92,22 @@ export default defineEventHandler(async (evento) => {
     .eq('id', barbeiroId)
     .maybeSingle()
 
-  if (
-    !barbeiro ||
-    barbeiro.barbearia_id !== barbearia.id ||
-    !barbeiro.atende ||
-    barbeiro.status !== 'ativo'
-  ) {
+  /* Atende aqui quem pertence a esta unidade — ou quem a administra e
+     ligou "eu tambem atendo". O dono corta em mais de uma loja sem
+     precisar de um cadastro em cada uma. */
+  let ehDaCasa = barbeiro?.barbearia_id === barbearia.id
+
+  if (barbeiro && !ehDaCasa) {
+    const { data: vinculo } = await admin
+      .from('donos_barbearias')
+      .select('perfil_id')
+      .eq('perfil_id', barbeiro.id)
+      .eq('barbearia_id', barbearia.id)
+      .maybeSingle()
+    ehDaCasa = !!vinculo
+  }
+
+  if (!barbeiro || !ehDaCasa || !barbeiro.atende || barbeiro.status !== 'ativo') {
     throw createError({ statusCode: 400, statusMessage: 'Profissional indisponível.' })
   }
 

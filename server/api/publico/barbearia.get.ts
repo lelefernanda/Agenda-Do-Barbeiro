@@ -56,16 +56,32 @@ export default defineEventHandler(async (evento) => {
       .eq('barbearia_id', barbearia.id)
       .eq('ativo', true)
       .order('ordem', { ascending: true }),
+    // Quem atende nesta unidade: a equipe dela, mais os donos que
+    // ligaram "eu tambem atendo" — o dono pode cortar em mais de uma
+    // loja sem se cadastrar duas vezes.
     admin
       .from('perfis')
-      .select('id, nome, foto_url, bio')
-      .eq('barbearia_id', barbearia.id)
+      .select('id, nome, foto_url, bio, barbearia_id')
       .eq('atende', true)
       .eq('status', 'ativo')
       .order('nome', { ascending: true }),
   ])
 
-  const idsAtendentes = (atendentes.data ?? []).map((a) => a.id)
+  /* Quem realmente atende NESTA unidade: quem pertence a ela, mais os
+     donos que a administram e ligaram "eu tambem atendo". O dono corta
+     em duas cidades sem precisar de dois cadastros. */
+  const { data: vinculos } = await admin
+    .from('donos_barbearias')
+    .select('perfil_id')
+    .eq('barbearia_id', barbearia.id)
+
+  const idsDonos = new Set((vinculos ?? []).map((v) => v.perfil_id))
+
+  const equipe = (atendentes.data ?? []).filter(
+    (a) => a.barbearia_id === barbearia.id || idsDonos.has(a.id)
+  )
+
+  const idsAtendentes = equipe.map((a) => a.id)
 
   /* 3. O horario de funcionamento da LOJA.
 
@@ -133,7 +149,7 @@ export default defineEventHandler(async (evento) => {
       cor: barbearia.cor,
     },
     servicos: servicos.data ?? [],
-    atendentes: atendentes.data ?? [],
+    atendentes: equipe,
     semana,
     aberto,
     dia_hoje: diaHoje,

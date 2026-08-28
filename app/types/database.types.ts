@@ -76,6 +76,21 @@ export type Servico = {
   ordem: number
 }
 
+/** Quais barbearias cada dono administra. Uma linha por unidade. */
+export type DonoBarbearia = {
+  perfil_id: string
+  barbearia_id: string
+  criado_em: string
+}
+
+/** Enderecos antigos de uma barbearia, para links ja compartilhados
+    continuarem funcionando depois de uma troca de nome. */
+export type SlugAntigo = {
+  slug: string
+  barbearia_id: string
+  criado_em: string
+}
+
 export type Jornada = {
   id: string
   barbeiro_id: string
@@ -170,6 +185,8 @@ export type Database = {
       agendamentos:          Tabela<Agendamento>
       avaliacoes:            Tabela<Avaliacao>
       solicitacoes_barbeiro: Tabela<SolicitacaoBarbeiro>
+      donos_barbearias:      Tabela<DonoBarbearia>
+      slugs_antigos:         Tabela<SlugAntigo>
       slugs_reservados:      Tabela<{ slug: string }>
     }
     Views: {

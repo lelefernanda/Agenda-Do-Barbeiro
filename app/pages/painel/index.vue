@@ -180,6 +180,10 @@ const doDia = computed(() =>
   carga.value.agendamentos.filter((a) => a.status !== 'cancelado' || mostrarCancelados.value)
 )
 
+const pendentesDoDia = computed(
+  () => carga.value.agendamentos.filter((a) => a.status === 'pendente').length
+)
+
 const canceladosDoDia = computed(
   () => carga.value.agendamentos.filter((a) => a.status === 'cancelado').length
 )
@@ -232,6 +236,39 @@ async function mudarStatus(a: AgendamentoLinha, status: StatusAgendamento) {
   await supabase.from('agendamentos').update({ status }).eq('id', a.id)
   mexendo.value = null
   await refresh()
+}
+
+/* Confirmar e avisar sao um gesto so.
+
+   Se fossem dois botoes, o barbeiro confirmaria e esqueceria de
+   avisar — e o cliente ficaria sem saber se o horario vale. Aqui o
+   WhatsApp abre junto, com a mensagem pronta: ele so aperta enviar. */
+async function confirmarEAvisar(a: AgendamentoLinha) {
+  const c = carga.value.clientes.get(a.cliente_id)
+  const servico = carga.value.servicos.get(a.servico_id)?.nome ?? 'seu horário'
+  const quando = new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(a.inicio))
+
+  const texto = [
+    `Olá${c?.nome ? ', ' + c.nome.split(' ')[0] : ''}!`,
+    '',
+    `Seu horário está confirmado:`,
+    `${servico} — ${quando}`,
+    contexto.value?.barbearia_nome ? `\n${contexto.value.barbearia_nome}` : '',
+    '',
+    'Até lá!',
+  ].join('\n')
+
+  await mudarStatus(a, 'confirmado')
+
+  if (c?.telefone) {
+    window.open(`https://wa.me/${soDigitos(c.telefone)}?text=${encodeURIComponent(texto)}`, '_blank')
+  }
 }
 
 const confirmandoCancelamento = ref<AgendamentoLinha | null>(null)
@@ -559,6 +596,14 @@ onMounted(() => {
       </div>
     </section>
 
+    <!-- Cliente que marcou e ficou esperando resposta. Fica na frente
+         ate alguem resolver: horario pendente e cliente na duvida. -->
+    <div v-if="pendentesDoDia" class="faixa-pendentes">
+      <span class="faixa-pendentes__ponto" />
+      {{ pendentesDoDia }}
+      {{ pendentesDoDia === 1 ? 'cliente esperando confirmação' : 'clientes esperando confirmação' }}
+    </div>
+
     <!-- ============ navegação do dia ============ -->
     <div class="dia-nav">
       <button class="dia-nav__seta" aria-label="Dia anterior" @click="mudarDia(-1)">
@@ -682,6 +727,16 @@ onMounted(() => {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5z" /></svg>
                   WhatsApp
                 </a>
+                <button
+                  v-if="a.status === 'pendente'"
+                  role="menuitem"
+                  class="aceitar"
+                  :disabled="mexendo === a.id"
+                  @click="confirmarEAvisar(a)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" /></svg>
+                  Confirmar
+                </button>
                 <button
                   v-if="a.status === 'pendente' || a.status === 'confirmado'"
                   role="menuitem"
@@ -964,6 +1019,27 @@ onMounted(() => {
 }
 
 /* ---------- navegação do dia ---------- */
+.faixa-pendentes {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 15px;
+  margin-bottom: 14px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: #4ADE80;
+}
+.faixa-pendentes__ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
 .dia-nav {
   display: flex;
   align-items: center;
@@ -1233,6 +1309,8 @@ onMounted(() => {
 .menu-acoes a:hover { background: rgba(255, 255, 255, 0.06); }
 .menu-acoes button:disabled { opacity: 0.45; }
 .menu-acoes svg { width: 16px; height: 16px; color: var(--cinza); flex-shrink: 0; }
+.menu-acoes .aceitar { color: #4ADE80; }
+.menu-acoes .aceitar svg { color: #4ADE80; }
 .menu-acoes .perigo { color: var(--laranja); }
 .menu-acoes .perigo svg { color: var(--laranja); }
 .menu-acoes hr { border: none; border-top: 1px solid var(--linha-suave); margin: 4px 8px; }
