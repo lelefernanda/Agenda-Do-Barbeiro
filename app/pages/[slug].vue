@@ -2,13 +2,12 @@
 /**
  * A página pública: agendadobarbeiro.com.br/inkabarbershop
  *
- * É o cartão de visita da barbearia e o lugar onde o cliente marca
- * sozinho. Por isso a ordem: identidade em cima, botão de marcar logo
- * em seguida, e o resto abaixo. Quem já decidiu marca em dois toques;
- * quem está conhecendo desce e lê.
+ * Desenhada como perfil de rede social, porque é assim que o cliente
+ * espera ver uma barbearia: capa, logo redonda, nome centralizado,
+ * uma linha de ações e seções separadas por divisórias.
  *
- * A cor vem da barbearia — tirada da foto de capa dela. Cada loja
- * parece dona da própria página sem que nenhuma fique ilegível.
+ * A cor vem da foto de capa da barbearia. Cada loja parece dona da
+ * própria página sem que nenhuma fique ilegível.
  */
 definePageMeta({ layout: false })
 
@@ -70,18 +69,18 @@ useHead(() => ({
   ],
 }))
 
-/* A cor da barbearia entra como variável: daqui para baixo, tudo que
-   é destaque na página usa ela. */
 const estiloDaLoja = computed(() => ({
   '--marca': cor.value,
   '--marca-suave': `${cor.value}1F`,
+  '--marca-brilho': `${cor.value}B3`,
   '--marca-linha': `${cor.value}59`,
 }))
 
 /* ------------------------------------------------------------
-   Os quatro passos
+   Os passos
    ------------------------------------------------------------ */
 const passo = ref<0 | 1 | 2 | 3 | 4>(0)
+const marcando = ref(false)
 
 const servico = ref<ServicoPublico | null>(null)
 const atendente = ref<AtendentePublico | null>(null)
@@ -97,29 +96,29 @@ function emTempo(min: number): string {
   return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
 }
 
-const marcando = ref(false)
-
-function comecar() {
-  marcando.value = true
-  passo.value = 1
+function subirAteOFluxo() {
   nextTick(() => {
     document.getElementById('marcar')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   })
 }
 
+function comecar() {
+  marcando.value = true
+  passo.value = 1
+  subirAteOFluxo()
+}
+
 function escolherServico(s: ServicoPublico) {
   servico.value = s
   hora.value = ''
-  if (!marcando.value) marcando.value = true
+  marcando.value = true
   if (equipe.value.length === 1) {
     atendente.value = equipe.value[0]!
     passo.value = 3
   } else {
     passo.value = 2
   }
-  nextTick(() => {
-    document.getElementById('marcar')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  })
+  subirAteOFluxo()
 }
 
 function escolherAtendente(a: AtendentePublico) {
@@ -266,9 +265,21 @@ const zapDaLoja = computed(() => {
   return `https://wa.me/${t.startsWith('55') ? t : `55${t}`}`
 })
 
+const instaDaLoja = computed(() => {
+  const i = loja.value?.instagram?.replace('@', '')
+  return i ? `https://instagram.com/${i}` : null
+})
+
 const iniciais = computed(() => {
   const n = loja.value?.nome ?? ''
   return n.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
+})
+
+/* A linha de categoria, como num perfil: "Barbearia · Pedreira" */
+const categoria = computed(() => {
+  const partes = ['Barbearia']
+  if (loja.value?.cidade) partes.push(loja.value.cidade)
+  return partes.join(' · ')
 })
 
 function voltar() {
@@ -297,7 +308,7 @@ function voltar() {
       </div>
     </div>
 
-    <template v-else-if="loja">
+    <div v-else-if="loja" class="folha">
       <!-- ============ capa ============ -->
       <div class="capa" :class="{ 'capa--vazia': !loja.capa_url }">
         <img
@@ -307,28 +318,32 @@ function voltar() {
           class="capa__img"
           :style="{ objectPosition: `center ${loja.capa_pos ?? 50}%` }"
         />
-        <div class="capa__veu" />
       </div>
 
-      <div class="miolo">
-        <!-- ============ identidade ============ -->
-        <header class="marca">
-          <div class="marca__logo">
-            <img v-if="loja.logo_url" :src="loja.logo_url" alt="" />
-            <template v-else>{{ iniciais }}</template>
-          </div>
+      <div class="corpo">
+      <!-- ============ identidade ============ -->
+      <header class="perfil">
+        <div class="perfil__logo">
+          <img v-if="loja.logo_url" :src="loja.logo_url" alt="" />
+          <template v-else>{{ iniciais }}</template>
+        </div>
 
-          <h1 class="marca__nome">{{ loja.nome }}</h1>
+        <h1 class="perfil__nome">{{ loja.nome }}</h1>
+        <p class="perfil__categoria">{{ categoria }}</p>
+        <p v-if="loja.endereco" class="perfil__endereco">{{ loja.endereco }}</p>
+        <p v-if="loja.sobre" class="perfil__sobre">{{ loja.sobre }}</p>
 
-          <p v-if="loja.endereco || loja.cidade" class="marca__onde">
-            {{ [loja.endereco, loja.cidade].filter(Boolean).join(' · ') }}
-          </p>
+        <div v-if="!pronto" class="acoes">
+          <button class="acao acao--forte" @click="comecar">Marcar horário</button>
+          <a v-if="zapDaLoja" :href="zapDaLoja" target="_blank" rel="noopener" class="acao">WhatsApp</a>
+          <a v-if="instaDaLoja" :href="instaDaLoja" target="_blank" rel="noopener" class="acao">Instagram</a>
+        </div>
+      </header>
 
-          <p v-if="loja.sobre" class="marca__sobre">{{ loja.sobre }}</p>
-        </header>
-
-        <!-- ============ comprovante ============ -->
-        <section v-if="pronto" class="feito">
+      <div class="lado">
+      <!-- ============ comprovante ============ -->
+      <section v-if="pronto" class="secao">
+        <div class="feito">
           <span class="feito__marca" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5L19.5 7" /></svg>
           </span>
@@ -352,286 +367,345 @@ function voltar() {
             </a>
             <button class="btn btn--vazio" @click="recomecar">Marcar outro horário</button>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <template v-else>
-          <!-- ============ chamada ============ -->
-          <button v-if="!marcando" class="btn btn--cheio btn--largo btn--alto" @click="comecar">
-            Marcar horário
-          </button>
+      <template v-else>
+        <!-- ============ o fluxo ============ -->
+        <section v-if="marcando" id="marcar" class="secao">
+          <div class="trilha" aria-hidden="true">
+            <span v-for="n in 4" :key="n" class="trilha__risco" :class="{ 'trilha__risco--on': passo >= n }" />
+          </div>
 
-          <!-- ============ o fluxo ============ -->
-          <section v-else id="marcar" class="fluxo">
-            <div class="trilha" aria-hidden="true">
-              <span v-for="n in 4" :key="n" class="trilha__risco" :class="{ 'trilha__risco--on': passo >= n }" />
-            </div>
+          <button class="voltar" @click="voltar">← Voltar</button>
 
-            <button class="voltar" @click="voltar">← Voltar</button>
+          <!-- passo 1: servico -->
+          <template v-if="passo === 1">
+            <h2 class="pergunta">O que você quer fazer?</h2>
 
-            <!-- passo 1: servico -->
-            <template v-if="passo === 1">
-              <h2 class="pergunta">O que você quer fazer?</h2>
+            <p v-if="!serv.length" class="nada">
+              Esta barbearia ainda não cadastrou os serviços.
+            </p>
 
-              <p v-if="!serv.length" class="nada">
-                Esta barbearia ainda não cadastrou os serviços.
-              </p>
-
-              <ul v-else class="opcoes">
-                <li v-for="s in serv" :key="s.id">
-                  <button class="opcao" @click="escolherServico(s)">
-                    <span v-if="s.foto_url" class="opcao__foto">
-                      <img :src="s.foto_url" alt="" loading="lazy" />
-                    </span>
-                    <span class="opcao__meio">
-                      <span class="opcao__nome">{{ s.nome }}</span>
-                      <span v-if="s.descricao" class="opcao__desc">{{ s.descricao }}</span>
-                      <span class="opcao__tempo">{{ emTempo(s.duracao_min) }}</span>
-                    </span>
-                    <span class="opcao__preco">{{ dinheiro.format(Number(s.preco)) }}</span>
-                  </button>
-                </li>
-              </ul>
-            </template>
-
-            <!-- passo 2: profissional -->
-            <template v-else-if="passo === 2">
-              <h2 class="pergunta">Com quem?</h2>
-              <ul class="opcoes">
-                <li v-for="a in equipe" :key="a.id">
-                  <button class="opcao" @click="escolherAtendente(a)">
-                    <span class="opcao__avatar">
-                      <img v-if="a.foto_url" :src="a.foto_url" alt="" loading="lazy" />
-                      <template v-else>{{ (a.nome.trim()[0] ?? '?').toUpperCase() }}</template>
-                    </span>
-                    <span class="opcao__meio">
-                      <span class="opcao__nome">{{ a.nome }}</span>
-                      <span v-if="a.bio" class="opcao__desc">{{ a.bio }}</span>
-                    </span>
-                  </button>
-                </li>
-              </ul>
-            </template>
-
-            <!-- passo 3: dia e hora -->
-            <template v-else-if="passo === 3">
-              <h2 class="pergunta">Quando fica bom?</h2>
-
-              <div class="dias">
-                <button
-                  v-for="d in proximosDias"
-                  :key="d.valor"
-                  class="dia"
-                  :class="{ 'dia--on': dia === d.valor }"
-                  @click="dia = d.valor; hora = ''"
-                >
-                  <span class="dia__semana">{{ d.hoje ? 'hoje' : d.semana }}</span>
-                  <span class="dia__num">{{ d.dia }}</span>
-                  <span class="dia__mes">{{ d.mes }}</span>
+            <ul v-else class="opcoes">
+              <li v-for="s in serv" :key="s.id">
+                <button class="opcao" @click="escolherServico(s)">
+                  <span v-if="s.foto_url" class="opcao__foto">
+                    <img :src="s.foto_url" alt="" loading="lazy" />
+                  </span>
+                  <span class="opcao__meio">
+                    <span class="opcao__nome">{{ s.nome }}</span>
+                    <span v-if="s.descricao" class="opcao__desc">{{ s.descricao }}</span>
+                    <span class="opcao__tempo">{{ emTempo(s.duracao_min) }}</span>
+                  </span>
+                  <span class="opcao__preco">{{ dinheiro.format(Number(s.preco)) }}</span>
                 </button>
-              </div>
+              </li>
+            </ul>
+          </template>
 
-              <p v-if="buscandoHorarios" class="nada">Procurando horários…</p>
-
-              <div v-else-if="livres.length" class="horas">
-                <button v-for="h in livres" :key="h" class="hora" @click="escolherHora(h)">{{ h }}</button>
-              </div>
-
-              <p v-else class="nada">
-                Nenhum horário livre neste dia. Tente outro — ou fale com a
-                barbearia pelo WhatsApp.
-              </p>
-            </template>
-
-            <!-- passo 4: dados -->
-            <template v-else>
-              <h2 class="pergunta">Quase lá</h2>
-
-              <div class="conferir">
-                <p class="conferir__linha">
-                  <strong>{{ servico?.nome }}</strong> · {{ dinheiro.format(Number(servico?.preco ?? 0)) }}
-                </p>
-                <p class="conferir__linha">Com {{ atendente?.nome }}</p>
-                <p class="conferir__linha conferir__linha--forte">
-                  {{ proximosDias.find((d) => d.valor === dia)?.semana }},
-                  {{ proximosDias.find((d) => d.valor === dia)?.dia }}
-                  de {{ proximosDias.find((d) => d.valor === dia)?.mes }}
-                  às {{ hora }}
-                </p>
-              </div>
-
-              <p v-if="erro" class="erro">{{ erro }}</p>
-
-              <label class="campo">
-                <span>Seu nome</span>
-                <input v-model="form.nome" placeholder="Como o barbeiro te chama" :disabled="enviando" />
-              </label>
-
-              <label class="campo">
-                <span>WhatsApp</span>
-                <input
-                  v-model="form.telefone"
-                  inputmode="tel"
-                  placeholder="(19) 99999-9999"
-                  :disabled="enviando"
-                />
-              </label>
-
-              <label class="campo">
-                <span>Alguma observação <em>(opcional)</em></span>
-                <input
-                  v-model="form.observacao"
-                  placeholder="Ex.: máquina 2 nas laterais"
-                  :disabled="enviando"
-                />
-              </label>
-
-              <button class="btn btn--cheio btn--largo" :disabled="!podeEnviar || enviando" @click="confirmar">
-                {{ enviando ? 'Marcando…' : 'Confirmar horário' }}
-              </button>
-
-              <p class="miudo">
-                Seus dados vão só para a barbearia, para ela te reconhecer e
-                avisar se algo mudar.
-              </p>
-            </template>
-          </section>
-
-          <!-- ============ vitrine (fora do fluxo) ============ -->
-          <template v-if="!marcando">
-            <section v-if="serv.length" class="bloco">
-              <p class="bloco__rotulo">Serviços</p>
-              <ul class="opcoes">
-                <li v-for="s in serv" :key="s.id">
-                  <button class="opcao" @click="escolherServico(s)">
-                    <span v-if="s.foto_url" class="opcao__foto">
-                      <img :src="s.foto_url" alt="" loading="lazy" />
-                    </span>
-                    <span class="opcao__meio">
-                      <span class="opcao__nome">{{ s.nome }}</span>
-                      <span v-if="s.descricao" class="opcao__desc">{{ s.descricao }}</span>
-                      <span class="opcao__tempo">{{ emTempo(s.duracao_min) }}</span>
-                    </span>
-                    <span class="opcao__preco">{{ dinheiro.format(Number(s.preco)) }}</span>
-                  </button>
-                </li>
-              </ul>
-            </section>
-
-            <section v-if="equipe.length" class="bloco">
-              <p class="bloco__rotulo">Quem atende</p>
-              <div class="equipe">
-                <div v-for="a in equipe" :key="a.id" class="pessoa">
-                  <span class="pessoa__foto">
+          <!-- passo 2: profissional -->
+          <template v-else-if="passo === 2">
+            <h2 class="pergunta">Com quem?</h2>
+            <ul class="opcoes">
+              <li v-for="a in equipe" :key="a.id">
+                <button class="opcao" @click="escolherAtendente(a)">
+                  <span class="opcao__avatar">
                     <img v-if="a.foto_url" :src="a.foto_url" alt="" loading="lazy" />
                     <template v-else>{{ (a.nome.trim()[0] ?? '?').toUpperCase() }}</template>
                   </span>
-                  <span class="pessoa__nome">{{ a.nome }}</span>
-                </div>
-              </div>
-            </section>
+                  <span class="opcao__meio">
+                    <span class="opcao__nome">{{ a.nome }}</span>
+                    <span v-if="a.bio" class="opcao__desc">{{ a.bio }}</span>
+                  </span>
+                </button>
+              </li>
+            </ul>
           </template>
-        </template>
 
-        <footer class="rodape">
-          <a v-if="zapDaLoja" :href="zapDaLoja" target="_blank" rel="noopener">WhatsApp</a>
-          <a
-            v-if="loja.instagram"
-            :href="`https://instagram.com/${loja.instagram.replace('@', '')}`"
-            target="_blank"
-            rel="noopener"
-          >Instagram</a>
-        </footer>
+          <!-- passo 3: dia e hora -->
+          <template v-else-if="passo === 3">
+            <h2 class="pergunta">Quando fica bom?</h2>
+
+            <div class="dias">
+              <button
+                v-for="d in proximosDias"
+                :key="d.valor"
+                class="dia"
+                :class="{ 'dia--on': dia === d.valor }"
+                @click="dia = d.valor; hora = ''"
+              >
+                <span class="dia__semana">{{ d.hoje ? 'hoje' : d.semana }}</span>
+                <span class="dia__num">{{ d.dia }}</span>
+                <span class="dia__mes">{{ d.mes }}</span>
+              </button>
+            </div>
+
+            <p v-if="buscandoHorarios" class="nada">Procurando horários…</p>
+
+            <div v-else-if="livres.length" class="horas">
+              <button v-for="h in livres" :key="h" class="hora" @click="escolherHora(h)">{{ h }}</button>
+            </div>
+
+            <p v-else class="nada">
+              Nenhum horário livre neste dia. Tente outro — ou fale com a
+              barbearia pelo WhatsApp.
+            </p>
+          </template>
+
+          <!-- passo 4: dados -->
+          <template v-else>
+            <h2 class="pergunta">Quase lá</h2>
+
+            <div class="conferir">
+              <p class="conferir__linha">
+                <strong>{{ servico?.nome }}</strong> · {{ dinheiro.format(Number(servico?.preco ?? 0)) }}
+              </p>
+              <p class="conferir__linha">Com {{ atendente?.nome }}</p>
+              <p class="conferir__linha conferir__linha--forte">
+                {{ proximosDias.find((d) => d.valor === dia)?.semana }},
+                {{ proximosDias.find((d) => d.valor === dia)?.dia }}
+                de {{ proximosDias.find((d) => d.valor === dia)?.mes }}
+                às {{ hora }}
+              </p>
+            </div>
+
+            <p v-if="erro" class="erro">{{ erro }}</p>
+
+            <label class="campo">
+              <span>Seu nome</span>
+              <input v-model="form.nome" placeholder="Como o barbeiro te chama" :disabled="enviando" />
+            </label>
+
+            <label class="campo">
+              <span>WhatsApp</span>
+              <input
+                v-model="form.telefone"
+                inputmode="tel"
+                placeholder="(19) 99999-9999"
+                :disabled="enviando"
+              />
+            </label>
+
+            <label class="campo">
+              <span>Alguma observação <em>(opcional)</em></span>
+              <input
+                v-model="form.observacao"
+                placeholder="Ex.: máquina 2 nas laterais"
+                :disabled="enviando"
+              />
+            </label>
+
+            <button class="btn btn--cheio btn--largo" :disabled="!podeEnviar || enviando" @click="confirmar">
+              {{ enviando ? 'Marcando…' : 'Confirmar horário' }}
+            </button>
+
+            <p class="miudo">
+              Seus dados vão só para a barbearia, para ela te reconhecer e
+              avisar se algo mudar.
+            </p>
+          </template>
+        </section>
+
+        <!-- ============ vitrine ============ -->
+        <template v-else>
+          <section v-if="serv.length" class="secao">
+            <p class="secao__rotulo">Serviços</p>
+            <ul class="grelha">
+              <li v-for="s in serv" :key="s.id">
+                <button class="carta" @click="escolherServico(s)">
+                  <span class="carta__foto">
+                    <img v-if="s.foto_url" :src="s.foto_url" alt="" loading="lazy" />
+                    <span v-else class="carta__sem" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7.4 19.5 18.9M8 16.6 19.5 5.1" /><circle cx="6" cy="6" r="2.4" /><circle cx="6" cy="18" r="2.4" /></svg>
+                    </span>
+                  </span>
+                  <span class="carta__nome">{{ s.nome }}</span>
+                  <span class="carta__pe">
+                    <span class="carta__tempo">{{ emTempo(s.duracao_min) }}</span>
+                    <span class="carta__preco">{{ dinheiro.format(Number(s.preco)) }}</span>
+                  </span>
+                </button>
+              </li>
+            </ul>
+          </section>
+
+          <section v-if="equipe.length" class="secao">
+            <p class="secao__rotulo">Quem atende</p>
+            <div class="equipe">
+              <div v-for="a in equipe" :key="a.id" class="pessoa">
+                <span class="pessoa__foto">
+                  <img v-if="a.foto_url" :src="a.foto_url" alt="" loading="lazy" />
+                  <template v-else>{{ (a.nome.trim()[0] ?? '?').toUpperCase() }}</template>
+                </span>
+                <span class="pessoa__nome">{{ a.nome }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section v-if="loja.endereco || loja.cidade" class="secao">
+            <p class="secao__rotulo">Onde fica</p>
+            <a
+              class="onde"
+              :href="`https://maps.google.com/?q=${encodeURIComponent([loja.nome, loja.endereco, loja.cidade].filter(Boolean).join(', '))}`"
+              target="_blank"
+              rel="noopener"
+            >
+              <span class="onde__pino" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" /><circle cx="12" cy="10" r="2.6" /></svg>
+              </span>
+              <span class="onde__texto">
+                <span class="onde__linha">{{ [loja.endereco, loja.cidade].filter(Boolean).join(' · ') }}</span>
+                <span class="onde__dica">Abrir no mapa</span>
+              </span>
+            </a>
+          </section>
+        </template>
+      </template>
+
       </div>
-    </template>
+      </div>
+
+      <footer class="rodape">
+        <span>Agendamento por Agenda do Barbeiro</span>
+      </footer>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .pagina {
+  overflow-x: hidden;
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--preto);
-  padding-bottom: 50px;
+  background-color: var(--preto);
+  /* A luz do fundo sai da cor da propria barbearia. Fica presa no
+     lugar: rola o conteudo, o brilho continua onde estava. */
+  position: relative;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 28px 28px, 28px 28px;
+  background-attachment: fixed;
 }
+
+/* O brilho e um elemento proprio, preso ao topo da PAGINA. Assim ele
+   fica onde nasceu e sai da tela conforme o cliente rola — em vez de
+   perseguir a janela, que era o efeito estranho de antes. */
+.pagina::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 620px;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(100% 62% at 50% 0%, var(--marca-brilho), transparent 68%);
+}
+
+.folha { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding-bottom: 40px; }
 
 .centro { display: flex; align-items: center; justify-content: center; min-height: 70vh; padding: 24px; }
 
-.miolo { max-width: 560px; margin: 0 auto; padding: 0 20px; }
-
 /* ---------- capa ---------- */
-.capa { position: relative; height: 190px; overflow: hidden; }
-.capa--vazia { height: 108px; background: linear-gradient(160deg, var(--marca-suave), transparent 70%); }
-.capa__img { width: 100%; height: 100%; object-fit: cover; }
-.capa__veu {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(10, 11, 13, 0.15) 0%, rgba(10, 11, 13, 0.55) 55%, var(--preto) 100%);
+.capa {
+  width: 100%;
+  height: clamp(150px, 40vw, 210px);
+  overflow: hidden;
+  background: var(--preto-800);
 }
+.capa--vazia { background: linear-gradient(140deg, var(--marca-suave), var(--preto-800)); }
+.capa__img { width: 100%; height: 100%; object-fit: cover; }
 
-/* ---------- identidade ---------- */
-.marca { margin-top: -34px; position: relative; }
-.marca__logo {
-  width: 64px;
-  height: 64px;
+/* ---------- perfil ---------- */
+.perfil { padding: 0 20px 22px; text-align: center; }
+
+.perfil__logo {
+  width: 92px;
+  height: 92px;
+  margin: -46px auto 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
-  border-radius: 17px;
+  border-radius: 99px;
   overflow: hidden;
   background: var(--preto-800);
-  border: 3px solid var(--preto);
+  border: 4px solid var(--preto);
   color: var(--marca);
-  font-size: 21px;
+  font-size: 29px;
   font-weight: 800;
+  position: relative;
 }
-.marca__logo img { width: 100%; height: 100%; object-fit: cover; }
+.perfil__logo img { width: 100%; height: 100%; object-fit: cover; }
 
-.marca__nome {
+.perfil__nome {
   margin: 0;
-  font-size: clamp(24px, 6.5vw, 31px);
+  font-size: clamp(21px, 5.5vw, 25px);
   font-weight: 780;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   color: var(--branco);
-  line-height: 1.1;
+  line-height: 1.15;
 }
-.marca__onde { margin: 7px 0 0; font-size: 13px; color: var(--cinza-600); }
-.marca__sobre {
-  margin: 13px 0 0;
-  font-size: 14px;
+.perfil__categoria { margin: 6px 0 0; font-size: 13px; color: var(--cinza-600); }
+.perfil__endereco { margin: 3px 0 0; font-size: 12.5px; color: var(--cinza-600); }
+.perfil__sobre {
+  margin: 12px auto 0;
+  max-width: 40ch;
+  font-size: 13.5px;
   color: var(--cinza);
   line-height: 1.6;
-  max-width: 46ch;
 }
 
-/* ---------- botoes ---------- */
-.btn {
+/* ---------- linha de acoes ---------- */
+.acoes { display: flex; gap: 7px; margin-top: 18px; }
+
+.acao {
+  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 22px;
-  min-height: 50px;
-  border: 1px solid transparent;
-  border-radius: 12px;
+  padding: 12px 8px;
+  min-height: 46px;
+  border: 1px solid var(--preto-600);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--branco);
   font-family: var(--fonte-corpo);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 650;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
+  transition: border-color 0.16s ease, transform 0.14s ease;
 }
-.btn--largo { width: 100%; }
-.btn--alto { margin-top: 22px; min-height: 54px; font-size: 16px; }
-.btn:disabled { opacity: 0.4; cursor: default; }
-.btn--cheio { background: var(--marca); color: #FFFFFF; }
-.btn--cheio:active:not(:disabled) { transform: scale(0.99); }
-.btn--vazio { background: transparent; border-color: var(--preto-600); color: var(--cinza); }
-.btn--vazio:hover { border-color: var(--cinza-600); color: var(--branco); }
+.acao:hover { border-color: var(--marca-linha); }
+.acao:active { transform: scale(0.98); }
+
+.acao--forte {
+  flex: 1.9;
+  background: var(--marca);
+  border-color: transparent;
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+/* ---------- secoes ---------- */
+.secao {
+  padding: 20px;
+  border-top: 1px solid var(--preto-700);
+  scroll-margin-top: 8px;
+}
+.secao__rotulo {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--cinza-600);
+}
 
 /* ---------- fluxo ---------- */
-.fluxo { margin-top: 24px; scroll-margin-top: 16px; }
-
-.trilha { display: flex; gap: 5px; margin-bottom: 20px; }
+.trilha { display: flex; gap: 5px; margin-bottom: 18px; }
 .trilha__risco {
   flex: 1;
   height: 3px;
@@ -656,8 +730,8 @@ function voltar() {
 
 .pergunta {
   margin: 0 0 16px;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 720;
   letter-spacing: -0.02em;
   color: var(--branco);
 }
@@ -674,58 +748,47 @@ function voltar() {
   text-align: center;
 }
 
-/* ---------- blocos da vitrine ---------- */
-.bloco { margin-top: 30px; }
-.bloco__rotulo {
-  margin: 0 0 11px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--cinza-600);
-}
-
 /* ---------- opcoes ---------- */
-.opcoes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.opcoes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 
 .opcao {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 13px;
   width: 100%;
-  padding: 13px 15px;
+  padding: 12px 14px;
   background: var(--preto-800);
   border: 1px solid transparent;
-  border-radius: 14px;
+  border-radius: 13px;
   font-family: var(--fonte-corpo);
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.16s ease, transform 0.16s ease;
+  transition: border-color 0.16s ease, transform 0.14s ease;
 }
 .opcao:hover { border-color: var(--marca-linha); }
 .opcao:active { transform: scale(0.99); }
 
 .opcao__foto,
 .opcao__avatar {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 11px;
   overflow: hidden;
   background: var(--preto-700);
   color: var(--marca);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 750;
 }
 .opcao__avatar { border-radius: 99px; }
 .opcao__foto img,
 .opcao__avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-.opcao__meio { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.opcao__nome { font-size: 15.5px; font-weight: 650; color: var(--branco); }
+.opcao__meio { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.opcao__nome { font-size: 15px; font-weight: 650; color: var(--branco); }
 .opcao__desc {
   font-size: 12.5px;
   color: var(--cinza-600);
@@ -736,7 +799,7 @@ function voltar() {
   line-clamp: 2;
   -webkit-box-orient: vertical;
 }
-.opcao__tempo { font-size: 12px; color: var(--cinza-600); }
+.opcao__tempo { font-size: 11.5px; color: var(--cinza-600); }
 .opcao__preco {
   flex-shrink: 0;
   font-size: 15px;
@@ -746,11 +809,11 @@ function voltar() {
 }
 
 /* ---------- equipe ---------- */
-.equipe { display: flex; gap: 16px; flex-wrap: wrap; }
-.pessoa { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 76px; }
+.equipe { display: flex; gap: 18px; flex-wrap: wrap; }
+.pessoa { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 68px; }
 .pessoa__foto {
-  width: 62px;
-  height: 62px;
+  width: 58px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -759,17 +822,46 @@ function voltar() {
   background: var(--preto-800);
   border: 1px solid var(--preto-700);
   color: var(--marca);
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 750;
 }
 .pessoa__foto img { width: 100%; height: 100%; object-fit: cover; }
 .pessoa__nome {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--cinza);
   text-align: center;
   line-height: 1.3;
   word-break: break-word;
 }
+
+/* ---------- onde fica ---------- */
+.onde {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 14px;
+  background: var(--preto-800);
+  border: 1px solid transparent;
+  border-radius: 13px;
+  text-decoration: none;
+  transition: border-color 0.16s ease;
+}
+.onde:hover { border-color: var(--marca-linha); }
+.onde__pino {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: var(--marca-suave);
+  color: var(--marca);
+}
+.onde__pino svg { width: 19px; height: 19px; }
+.onde__texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.onde__linha { font-size: 14px; color: var(--branco); font-weight: 600; }
+.onde__dica { font-size: 12px; color: var(--marca); }
 
 /* ---------- dias ---------- */
 .dias {
@@ -785,7 +877,7 @@ function voltar() {
 
 .dia {
   flex-shrink: 0;
-  width: 62px;
+  width: 60px;
   padding: 10px 0;
   display: flex;
   flex-direction: column;
@@ -793,28 +885,28 @@ function voltar() {
   gap: 1px;
   background: var(--preto-800);
   border: 1px solid transparent;
-  border-radius: 13px;
+  border-radius: 12px;
   font-family: var(--fonte-corpo);
   cursor: pointer;
   transition: border-color 0.16s ease, background 0.16s ease;
 }
 .dia--on { border-color: var(--marca); background: var(--marca-suave); }
-.dia__semana { font-size: 11px; color: var(--cinza-600); text-transform: lowercase; }
-.dia__num { font-size: 18px; font-weight: 750; color: var(--branco); font-variant-numeric: tabular-nums; }
-.dia__mes { font-size: 10.5px; color: var(--cinza-600); text-transform: lowercase; }
+.dia__semana { font-size: 10.5px; color: var(--cinza-600); text-transform: lowercase; }
+.dia__num { font-size: 17px; font-weight: 750; color: var(--branco); font-variant-numeric: tabular-nums; }
+.dia__mes { font-size: 10px; color: var(--cinza-600); text-transform: lowercase; }
 
 /* ---------- horas ---------- */
 .horas { display: flex; flex-wrap: wrap; gap: 8px; }
 .hora {
   padding: 11px 0;
   width: calc(25% - 6px);
-  min-width: 72px;
+  min-width: 70px;
   background: var(--preto-800);
   border: 1px solid transparent;
   border-radius: 11px;
   color: var(--branco);
   font-family: var(--fonte-corpo);
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -825,7 +917,7 @@ function voltar() {
 /* ---------- conferir ---------- */
 .conferir {
   padding: 14px 16px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   background: var(--preto-800);
   border-left: 3px solid var(--marca);
   border-radius: 12px;
@@ -839,7 +931,7 @@ function voltar() {
 .campo { display: flex; flex-direction: column; margin-bottom: 14px; }
 .campo > span {
   margin-bottom: 7px;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -879,15 +971,31 @@ function voltar() {
   text-align: center;
 }
 
-/* ---------- comprovante ---------- */
-.feito {
-  margin-top: 24px;
-  padding: 26px 24px;
-  background: var(--preto-800);
-  border: 1px solid var(--preto-700);
-  border-radius: 18px;
-  text-align: center;
+/* ---------- botoes ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 22px;
+  min-height: 50px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-family: var(--fonte-corpo);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
 }
+.btn--largo { width: 100%; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn--cheio { background: var(--marca); color: #FFFFFF; }
+.btn--cheio:active:not(:disabled) { transform: scale(0.99); }
+.btn--vazio { background: transparent; border-color: var(--preto-600); color: var(--cinza); }
+.btn--vazio:hover { border-color: var(--cinza-600); color: var(--branco); }
+
+/* ---------- comprovante ---------- */
+.feito { text-align: center; }
 .feito__marca {
   display: flex;
   align-items: center;
@@ -912,7 +1020,7 @@ function voltar() {
 .resumo {
   margin: 0 0 18px;
   padding: 14px 16px;
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--preto-800);
   border-radius: 12px;
   text-align: left;
 }
@@ -938,18 +1046,167 @@ function voltar() {
 
 /* ---------- rodape ---------- */
 .rodape {
-  display: flex;
-  justify-content: center;
-  gap: 22px;
-  margin-top: 40px;
-  padding-top: 20px;
+  padding: 22px 20px 0;
   border-top: 1px solid var(--preto-700);
-  font-size: 13px;
+  text-align: center;
+  font-size: 11.5px;
   color: var(--cinza-600);
 }
-.rodape a:hover { color: var(--branco); }
+
+/* ---------- servicos em grade ---------- */
+/* Carrossel, nao grade: com tres ou com trinta servicos a secao ocupa
+   sempre a mesma altura. O cliente arrasta para o lado, como em app de
+   comida. E o corte na borda direita e proposital — e o que avisa que
+   tem mais coisa ali. */
+.grelha {
+  list-style: none;
+  margin: 0 -20px;
+  padding: 0 20px 6px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.grelha::-webkit-scrollbar { display: none; }
+
+.grelha > li {
+  display: flex;
+  flex: 0 0 150px;
+  scroll-snap-align: start;
+}
+
+.carta {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 0 0 12px;
+  background: var(--preto-800);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  overflow: hidden;
+  font-family: var(--fonte-corpo);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, transform 0.14s ease;
+}
+.carta:hover { border-color: var(--marca-linha); }
+.carta:active { transform: scale(0.99); }
+
+.carta__foto {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  background: var(--preto-700);
+  overflow: hidden;
+}
+.carta__foto img { width: 100%; height: 100%; object-fit: cover; }
+
+.carta__sem {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--marca);
+  opacity: 0.45;
+}
+.carta__sem svg { width: 30px; height: 30px; }
+
+.carta__nome {
+  flex: 1;
+  margin: 11px 12px 0;
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--branco);
+  line-height: 1.3;
+}
+
+.carta__pe {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 5px 12px 0;
+}
+.carta__tempo { font-size: 11.5px; color: var(--cinza-600); }
+.carta__preco {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--marca);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------
+   No computador o perfil ganha ar: a capa atravessa a tela e o
+   conteudo se divide em duas colunas — identidade fixa a esquerda,
+   servicos e agendamento a direita. E o mesmo arranjo do Facebook.
+   ------------------------------------------------------------ */
+@media (min-width: 900px) {
+  .capa {
+    height: clamp(240px, 26vw, 340px);
+  }
+
+  .folha {
+    max-width: 1000px;
+    padding-bottom: 60px;
+  }
+
+  .corpo {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 32px;
+    align-items: start;
+    padding: 0 28px;
+  }
+
+  .perfil {
+    text-align: left;
+    padding: 0;
+    margin-top: -60px;
+    position: sticky;
+    top: 24px;
+  }
+
+  .perfil__logo {
+    margin: 0 0 16px;
+    width: 116px;
+    height: 116px;
+    font-size: 36px;
+  }
+
+  .perfil__nome { font-size: 27px; }
+  .perfil__sobre { margin-left: 0; margin-right: 0; }
+
+  .acoes { flex-direction: column; }
+  .acao, .acao--forte { flex: none; width: 100%; }
+
+  .lado {
+    margin-top: 24px;
+    border: 1px solid var(--preto-700);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .secao { border-top: 1px solid var(--preto-700); }
+  .secao:first-child { border-top: none; }
+
+  .horas .hora { width: calc(16.66% - 7px); }
+  /* No computador ha espaco: a grade volta, sem corte e sem arrasto. */
+  .grelha {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+  .grelha > li { flex: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .btn, .opcao, .hora, .dia, .trilha__risco { transition: none; }
+  .btn, .opcao, .hora, .dia, .acao, .trilha__risco { transition: none; }
 }
 </style>

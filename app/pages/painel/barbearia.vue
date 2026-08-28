@@ -552,7 +552,8 @@ const mudouCapa = computed(
 
 .capa__moldura {
   position: relative;
-  height: 150px;
+  width: 100%;
+  height: clamp(170px, 26vw, 240px);
   border-radius: 14px;
   overflow: hidden;
   touch-action: none;
