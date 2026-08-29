@@ -141,7 +141,9 @@ const estiloDaLoja = computed(() => ({
   '--marca-grade': `${cor.value}14`,
   /* O cartao e preto solido com um veu da cor por cima: sem o preto
      por baixo, a transparencia deixava o texto boiando no fundo. */
-  '--marca-carta': `linear-gradient(${cor.value}14, ${cor.value}14), var(--preto-800)`,
+  /* Preto neutro por baixo, nao o --preto-800 (que e azulado): laranja
+     sobre azul dava roxo. Assim cada cor aparece como ela e. */
+  '--marca-carta': `linear-gradient(${cor.value}14, ${cor.value}14), #0F1114`,
   '--marca-borda': `${cor.value}26`,
   '--marca-linha': `${cor.value}59`,
 }))
@@ -896,7 +898,7 @@ function voltar() {
   height: clamp(170px, 44vw, 250px);
   overflow: hidden;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
 }
 .capa--vazia { background: linear-gradient(140deg, var(--marca-suave), var(--preto-800)); }
 .capa__img { width: 100%; height: 100%; object-fit: cover; }
@@ -914,7 +916,7 @@ function voltar() {
   border-radius: 99px;
   overflow: hidden;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 4px solid var(--preto);
   color: var(--marca);
   font-size: 29px;
@@ -1027,7 +1029,7 @@ function voltar() {
   margin: 0;
   padding: 22px 20px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px dashed var(--preto-600);
   border-radius: 14px;
   font-size: 13.5px;
@@ -1046,7 +1048,7 @@ function voltar() {
   width: 100%;
   padding: 12px 14px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px solid transparent;
   border-radius: 13px;
   font-family: var(--fonte-corpo);
@@ -1109,7 +1111,7 @@ function voltar() {
   border-radius: 99px;
   overflow: hidden;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px solid var(--marca-borda);
   color: var(--marca);
   font-size: 20px;
@@ -1131,7 +1133,7 @@ function voltar() {
   gap: 13px;
   padding: 13px 14px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px solid transparent;
   border-radius: 13px;
   text-decoration: none;
@@ -1175,7 +1177,7 @@ function voltar() {
   align-items: center;
   gap: 1px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px solid transparent;
   border-radius: 12px;
   font-family: var(--fonte-corpo);
@@ -1194,7 +1196,7 @@ function voltar() {
   width: calc(25% - 6px);
   min-width: 70px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px solid transparent;
   border-radius: 11px;
   color: var(--branco);
@@ -1212,7 +1214,7 @@ function voltar() {
   padding: 14px 16px;
   margin-bottom: 18px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border-left: 3px solid var(--marca);
   border-radius: 12px;
 }
@@ -1242,7 +1244,7 @@ function voltar() {
   border-radius: 99px;
   overflow: hidden;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   color: var(--marca);
   font-size: 13px;
   font-weight: 750;
@@ -1277,7 +1279,7 @@ function voltar() {
   border-radius: 99px;
   overflow: hidden;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   color: var(--marca);
   font-size: 12px;
   font-weight: 750;
@@ -1297,7 +1299,7 @@ function voltar() {
   border-radius: 99px;
   overflow: hidden;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px dashed var(--preto-600);
   color: var(--cinza-600);
   cursor: pointer;
@@ -1341,7 +1343,7 @@ function voltar() {
   font-size: 16px;
   color: var(--branco);
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px solid var(--marca-borda);
   border-radius: 12px;
 }
@@ -1417,7 +1419,7 @@ function voltar() {
   margin: 0 0 18px;
   padding: 14px 16px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border-radius: 12px;
   text-align: left;
 }
@@ -1433,7 +1435,7 @@ function voltar() {
 .aviso {
   padding: 26px 24px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px solid var(--marca-borda);
   border-radius: 18px;
   text-align: center;
@@ -1466,12 +1468,12 @@ function voltar() {
 .selo__ponto { width: 7px; height: 7px; border-radius: 99px; background: currentColor; flex-shrink: 0; }
 .selo--on { color: #4ADE80; background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.32); }
 .selo--off { color: var(--cinza-600); background: var(--marca-carta);
-  background-color: var(--preto-800); border-color: var(--preto-600); }
+  background-color: #0F1114; border-color: var(--preto-600); }
 
 /* ---------- unidades agrupadas por cidade ---------- */
 .grupo-cidade {
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border-radius: 13px;
   overflow: hidden;
 }
@@ -1538,7 +1540,7 @@ function voltar() {
   gap: 12px;
   padding: 13px 15px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px solid transparent;
   border-radius: 13px;
   text-decoration: none;
@@ -1555,7 +1557,7 @@ function voltar() {
 .pagamento {
   padding: 8px 14px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px solid var(--marca-borda);
   border-radius: 99px;
   font-size: 13px;
@@ -1619,7 +1621,7 @@ function voltar() {
   height: 100%;
   padding: 0 0 12px;
   background: var(--marca-carta);
-  background-color: var(--preto-800);
+  background-color: #0F1114;
   border: 1px solid transparent;
   border-radius: 14px;
   overflow: hidden;

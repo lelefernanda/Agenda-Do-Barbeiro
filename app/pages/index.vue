@@ -5,7 +5,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
    TROQUE ESTES VALORES
    ------------------------------------------------------------ */
 const WHATSAPP = 'https://wa.me/5519982659293?text=Oi!%20Quero%20conhecer%20o%20Agenda%20Do%20Barbeiro'
-const SLUG_DEMO = '/barbearia-exemplo'   // tenant de demonstração
+const SLUG_DEMO = '/inka-barber'   // tenant de demonstração
 
 const PRECO_INSTALACAO   = '150'
 const PRECO_MENSAL       = '100'
