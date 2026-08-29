@@ -310,6 +310,8 @@ onMounted(() => {
       if (d.foto) minhaFoto.value = d.foto
       jaConhecido.value = !!d.nome
     }
+
+    procurarPendente()
   } catch {
     // Navegador sem armazenamento: segue como visitante novo.
   }
@@ -366,6 +368,64 @@ async function escolherFoto(e: Event) {
 }
 
 const minhaInicial = computed(() => (form.nome.trim()[0] ?? '?').toUpperCase())
+
+/* ------------------------------------------------------------
+   Avaliar o corte
+
+   Quem foi atendido nos ultimos 30 dias e ainda nao deu nota ve a
+   pergunta assim que abre a pagina. Sem login: o proprio celular ja
+   diz quem e, pela chave guardada nele.
+   ------------------------------------------------------------ */
+type Pendente = { id: string; inicio: string; barbeiro: string | null; servico: string | null }
+
+const avaliacaoPendente = ref<Pendente | null>(null)
+const estrelas = ref(0)
+const comentarioNota = ref('')
+const enviandoNota = ref(false)
+const erroNota = ref('')
+const notaEnviada = ref(false)
+
+async function procurarPendente() {
+  if (!minhaChave.value) return
+  try {
+    const r = await $fetch<{ pendente: Pendente | null }>('/api/publico/pendente', {
+      query: { slug: slug.value, chave: minhaChave.value },
+    })
+    avaliacaoPendente.value = r.pendente
+  } catch {
+    avaliacaoPendente.value = null
+  }
+}
+
+async function enviarNota() {
+  if (!avaliacaoPendente.value || !estrelas.value || enviandoNota.value) return
+  enviandoNota.value = true
+  erroNota.value = ''
+
+  try {
+    await $fetch('/api/publico/avaliar', {
+      method: 'POST',
+      body: {
+        agendamento_id: avaliacaoPendente.value.id,
+        chave: minhaChave.value,
+        estrelas: estrelas.value,
+        comentario: comentarioNota.value,
+      },
+    })
+    notaEnviada.value = true
+    setTimeout(() => {
+      avaliacaoPendente.value = null
+      notaEnviada.value = false
+      estrelas.value = 0
+      comentarioNota.value = ''
+    }, 2500)
+  } catch (e) {
+    const m = e as { statusMessage?: string; data?: { statusMessage?: string } }
+    erroNota.value = m.data?.statusMessage ?? m.statusMessage ?? 'Não foi possível enviar.'
+  } finally {
+    enviandoNota.value = false
+  }
+}
 
 const saudacaoDoDia = computed(() => {
   const hora = Number(
@@ -586,6 +646,53 @@ function voltar() {
             </a>
             <button class="btn btn--vazio" @click="recomecar">Marcar outro horário</button>
           </div>
+        </div>
+      </section>
+
+      <!-- Quem foi atendido e ainda nao deu nota ve isto antes de tudo. -->
+      <section v-if="avaliacaoPendente && !pronto" class="secao">
+        <div class="avaliar">
+          <template v-if="notaEnviada">
+            <p class="avaliar__obrigado">Obrigado pela avaliação!</p>
+          </template>
+
+          <template v-else>
+            <p class="avaliar__titulo">
+              Como foi seu {{ avaliacaoPendente.servico?.toLowerCase() || 'atendimento' }}<template v-if="avaliacaoPendente.barbeiro"> com {{ avaliacaoPendente.barbeiro }}</template>?
+            </p>
+
+            <div class="estrelas">
+              <button
+                v-for="n in 5"
+                :key="n"
+                class="estrela"
+                :class="{ 'estrela--on': n <= estrelas }"
+                :aria-label="`${n} de 5`"
+                @click="estrelas = n"
+              >
+                <svg viewBox="0 0 24 24" :fill="n <= estrelas ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.7 6.2.7-4.6 4.2 1.3 6.1L12 17.1 6.5 20.2l1.3-6.1L3.2 9.9l6.2-.7z" /></svg>
+              </button>
+            </div>
+
+            <textarea
+              v-if="estrelas"
+              v-model="comentarioNota"
+              rows="2"
+              maxlength="500"
+              placeholder="Quer contar algo? (opcional)"
+              class="avaliar__texto"
+              :disabled="enviandoNota"
+            />
+
+            <p v-if="erroNota" class="erro">{{ erroNota }}</p>
+
+            <button
+              v-if="estrelas"
+              class="btn btn--cheio btn--largo"
+              :disabled="enviandoNota"
+              @click="enviarNota"
+            >{{ enviandoNota ? 'Enviando…' : 'Enviar avaliação' }}</button>
+          </template>
         </div>
       </section>
 
@@ -1311,6 +1418,52 @@ function voltar() {
 }
 .barra-topo__foto img { width: 100%; height: 100%; object-fit: cover; }
 .barra-topo__nome { font-size: 13px; font-weight: 650; color: var(--branco); }
+
+/* ---------- avaliar o corte ---------- */
+.avaliar { text-align: center; }
+.avaliar__titulo {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--branco);
+  line-height: 1.35;
+}
+.avaliar__obrigado {
+  margin: 0;
+  padding: 12px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--marca);
+}
+
+.estrelas { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; }
+.estrela {
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: var(--preto-600);
+  cursor: pointer;
+  transition: color 0.14s ease, transform 0.14s ease;
+}
+.estrela svg { width: 32px; height: 32px; }
+.estrela:hover { transform: scale(1.1); }
+.estrela--on { color: #FBBF24; }
+
+.avaliar__texto {
+  width: 100%;
+  padding: 11px 13px;
+  margin-bottom: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--marca-borda);
+  border-radius: 12px;
+  color: var(--branco);
+  font-family: var(--fonte-corpo);
+  font-size: 14.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.avaliar__texto:focus { outline: none; border-color: var(--marca); }
+.avaliar__texto::placeholder { color: var(--cinza-600); }
 
 /* ---------- a foto do cliente ---------- */
 .minha-foto { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
