@@ -221,7 +221,11 @@ export default defineEventHandler(async (evento) => {
       .single()
 
     if (erroCliente || !criado) {
-      throw createError({ statusCode: 500, statusMessage: 'Não foi possível salvar seus dados.' })
+      console.error('[agendar/cliente]', erroCliente)
+      throw createError({
+        statusCode: 500,
+        statusMessage: erroCliente?.message ?? 'Não foi possível salvar seus dados.',
+      })
     }
     clienteId = criado.id
   }

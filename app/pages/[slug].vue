@@ -300,7 +300,9 @@ onMounted(() => {
     }
     minhaChave.value = c
 
-    const guardado = localStorage.getItem('cliente-dados')
+    /* Guardado POR BARBEARIA. Sem isso, quem marcou numa loja via o
+       proprio nome na pagina de outra. */
+    const guardado = localStorage.getItem(`cliente-dados-${slug.value}`)
     if (guardado) {
       const d = JSON.parse(guardado) as { nome?: string; telefone?: string; foto?: string }
       if (d.nome) form.nome = d.nome
@@ -316,7 +318,7 @@ onMounted(() => {
 function guardarMeusDados() {
   try {
     localStorage.setItem(
-      'cliente-dados',
+      `cliente-dados-${slug.value}`,
       JSON.stringify({ nome: form.nome, telefone: form.telefone, foto: minhaFoto.value })
     )
   } catch {
@@ -326,7 +328,7 @@ function guardarMeusDados() {
 
 function esquecerMeusDados() {
   try {
-    localStorage.removeItem('cliente-dados')
+    localStorage.removeItem(`cliente-dados-${slug.value}`)
   } catch { /* nada a fazer */ }
   form.nome = ''
   form.telefone = ''

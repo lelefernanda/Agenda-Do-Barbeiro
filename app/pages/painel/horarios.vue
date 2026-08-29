@@ -73,14 +73,6 @@ const { data: barbeiros } = await useAsyncData<BarbeiroResumo[]>(
     if (meu && !lista.some((p) => p.id === meu.id)) lista.push(meu)
 
     lista.sort((a, b) => a.nome.localeCompare(b.nome))
-    console.log('[diag]', {
-      barbearia,
-      eu,
-      daCasa: daCasa.data,
-      erroCasa: daCasa.error,
-      meuPerfil: meuPerfil.data,
-      total: lista.length,
-    })
     return lista
   },
   // Refaz a busca quando o contexto chega e quando o dono troca de
