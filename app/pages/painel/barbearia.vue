@@ -35,6 +35,7 @@ type Loja = {
   sobre: string | null
   cor: string | null
   pagamentos: string[] | null
+  comodidades: string[] | null
 }
 
 const { data: loja, refresh } = await useAsyncData<Loja | null>(
@@ -44,7 +45,7 @@ const { data: loja, refresh } = await useAsyncData<Loja | null>(
     const { data } = await supabase
       .from('barbearias')
       .select(
-        'id, nome, slug, telefone, endereco, cidade, instagram, facebook, logo_url, capa_url, capa_pos, sobre, cor, pagamentos'
+        'id, nome, slug, telefone, endereco, cidade, instagram, facebook, logo_url, capa_url, capa_pos, sobre, cor, pagamentos, comodidades'
       )
       .eq('id', contexto.value.barbearia_id)
       .maybeSingle()
@@ -81,6 +82,26 @@ const FORMAS = [
 ]
 const pagamentos = ref<string[]>([])
 
+/* O que a barbearia oferece alem do corte. Lista fixa de proposito:
+   texto livre daria uma pagina diferente em cada barbearia. */
+const COMODIDADES = [
+  { id: 'wifi', nome: 'Wi-Fi' },
+  { id: 'estacionamento', nome: 'Estacionamento' },
+  { id: 'ar', nome: 'Ar-condicionado' },
+  { id: 'acessivel', nome: 'Acessível' },
+  { id: 'criancas', nome: 'Atende crianças' },
+  { id: 'kids', nome: 'Espaço kids' },
+  { id: 'cafe', nome: 'Café e água' },
+  { id: 'tv', nome: 'TV' },
+]
+const comodidades = ref<string[]>([])
+
+function virarComodidade(id: string) {
+  const i = comodidades.value.indexOf(id)
+  if (i === -1) comodidades.value.push(id)
+  else comodidades.value.splice(i, 1)
+}
+
 function virarPagamento(id: string) {
   const i = pagamentos.value.indexOf(id)
   if (i === -1) pagamentos.value.push(id)
@@ -100,6 +121,7 @@ watch(
     form.sobre = l.sobre ?? ''
     posicao.value = l.capa_pos ?? 50
     pagamentos.value = [...(l.pagamentos ?? [])]
+    comodidades.value = [...(l.comodidades ?? [])]
     cor.value = l.cor ?? AZUL
   },
   { immediate: true }
@@ -135,6 +157,7 @@ async function salvar() {
       capa_pos: Math.round(posicao.value),
       cor: cor.value,
       pagamentos: pagamentos.value,
+      comodidades: comodidades.value,
     })
     .eq('id', loja.value.id)
   salvando.value = false
@@ -436,6 +459,21 @@ const mudouCapa = computed(
             :class="{ 'forma--on': pagamentos.includes(f.id) }"
             @click="virarPagamento(f.id)"
           >{{ f.nome }}</button>
+        </div>
+      </section>
+
+      <!-- ============ comodidades ============ -->
+      <section class="cartao">
+        <p class="cartao__rotulo">Comodidades</p>
+        <p class="cartao__dica">O que sua barbearia oferece. Aparece na sua página.</p>
+        <div class="formas">
+          <button
+            v-for="c in COMODIDADES"
+            :key="c.id"
+            class="forma"
+            :class="{ 'forma--on': comodidades.includes(c.id) }"
+            @click="virarComodidade(c.id)"
+          >{{ c.nome }}</button>
         </div>
       </section>
 

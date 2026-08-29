@@ -46,6 +46,7 @@ type Vitrine = {
     sobre: string | null
     cor: string | null
     pagamentos: string[] | null
+    comodidades: string[] | null
   }
   servicos: ServicoPublico[]
   atendentes: AtendentePublico[]
@@ -97,6 +98,21 @@ const NOMES_PAGAMENTO: Record<string, string> = {
   debito: 'Cartão de débito',
   credito: 'Cartão de crédito',
 }
+
+const NOMES_COMODIDADE: Record<string, string> = {
+  wifi: 'Wi-Fi',
+  estacionamento: 'Estacionamento',
+  ar: 'Ar-condicionado',
+  acessivel: 'Acessível',
+  criancas: 'Atende crianças',
+  kids: 'Espaço kids',
+  cafe: 'Café e água',
+  tv: 'TV',
+}
+
+const comodidades = computed(() =>
+  (loja.value?.comodidades ?? []).map((c) => NOMES_COMODIDADE[c] ?? c)
+)
 
 const pagamentos = computed(() =>
   (loja.value?.pagamentos ?? []).map((p) => NOMES_PAGAMENTO[p] ?? p)
@@ -776,6 +792,13 @@ function voltar() {
                 <span class="horario__faixa">{{ d.faixa }}</span>
               </li>
             </ul>
+          </section>
+
+          <section v-if="comodidades.length" class="secao">
+            <p class="secao__rotulo">O que temos aqui</p>
+            <div class="pagamentos">
+              <span v-for="c in comodidades" :key="c" class="pagamento">{{ c }}</span>
+            </div>
           </section>
 
           <section v-if="pagamentos.length" class="secao">

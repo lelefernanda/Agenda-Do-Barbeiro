@@ -36,6 +36,7 @@ export type Barbearia = {
   sobre: string | null
   cor: string | null
   pagamentos: string[] | null
+  comodidades: string[] | null
   pagamento: FormaPagamento
   vence_em: string | null
   criada_em: string
