@@ -28,6 +28,7 @@ type Loja = {
   endereco: string | null
   cidade: string | null
   instagram: string | null
+  facebook: string | null
   logo_url: string | null
   capa_url: string | null
   capa_pos: number | null
@@ -43,7 +44,7 @@ const { data: loja, refresh } = await useAsyncData<Loja | null>(
     const { data } = await supabase
       .from('barbearias')
       .select(
-        'id, nome, slug, telefone, endereco, cidade, instagram, logo_url, capa_url, capa_pos, sobre, cor, pagamentos'
+        'id, nome, slug, telefone, endereco, cidade, instagram, facebook, logo_url, capa_url, capa_pos, sobre, cor, pagamentos'
       )
       .eq('id', contexto.value.barbearia_id)
       .maybeSingle()
@@ -61,6 +62,7 @@ const form = reactive({
   endereco: '',
   cidade: '',
   instagram: '',
+  facebook: '',
   sobre: '',
 })
 
@@ -94,6 +96,7 @@ watch(
     form.endereco = l.endereco ?? ''
     form.cidade = l.cidade ?? ''
     form.instagram = (l.instagram ?? '').replace('@', '')
+    form.facebook = l.facebook ?? ''
     form.sobre = l.sobre ?? ''
     posicao.value = l.capa_pos ?? 50
     pagamentos.value = [...(l.pagamentos ?? [])]
@@ -127,6 +130,7 @@ async function salvar() {
       endereco: form.endereco.trim() || null,
       cidade: form.cidade.trim() || null,
       instagram: form.instagram.trim().replace('@', '') || null,
+      facebook: form.facebook.trim() || null,
       sobre: form.sobre.trim() || null,
       capa_pos: Math.round(posicao.value),
       cor: cor.value,
@@ -467,6 +471,11 @@ const mudouCapa = computed(
           <label class="campo">
             <span>Instagram</span>
             <input v-model="form.instagram" :placeholder="exemploInstagram" :disabled="salvando" />
+          </label>
+
+          <label class="campo">
+            <span>Facebook <em>(opcional)</em></span>
+            <input v-model="form.facebook" placeholder="facebook.com/suapagina" :disabled="salvando" />
           </label>
 
           <label class="campo">

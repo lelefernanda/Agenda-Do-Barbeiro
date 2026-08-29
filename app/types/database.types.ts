@@ -29,6 +29,7 @@ export type Barbearia = {
   endereco: string | null
   cidade: string | null
   instagram: string | null
+  facebook: string | null
   logo_url: string | null
   capa_url: string | null
   capa_pos: number | null

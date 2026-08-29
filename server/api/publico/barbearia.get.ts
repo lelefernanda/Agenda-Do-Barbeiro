@@ -36,7 +36,7 @@ export default defineEventHandler(async (evento) => {
   const { data: barbearia, error: erroBarbearia } = await admin
     .from('barbearias')
     .select(
-      'id, nome, slug, status, telefone, endereco, cidade, instagram, logo_url, capa_url, capa_pos, sobre, cor'
+      'id, nome, slug, status, telefone, endereco, cidade, instagram, facebook, logo_url, capa_url, capa_pos, sobre, cor, pagamentos'
     )
     .eq('slug', slug.trim().toLowerCase())
     .maybeSingle()
@@ -180,11 +180,13 @@ export default defineEventHandler(async (evento) => {
       endereco: barbearia.endereco,
       cidade: barbearia.cidade,
       instagram: barbearia.instagram,
+      facebook: barbearia.facebook,
       logo_url: barbearia.logo_url,
       capa_url: barbearia.capa_url,
       capa_pos: barbearia.capa_pos,
       sobre: barbearia.sobre,
       cor: barbearia.cor,
+      pagamentos: barbearia.pagamentos ?? [],
     },
     servicos: servicos.data ?? [],
     atendentes: equipe,

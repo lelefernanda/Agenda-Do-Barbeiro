@@ -39,6 +39,7 @@ type Vitrine = {
     endereco: string | null
     cidade: string | null
     instagram: string | null
+    facebook: string | null
     logo_url: string | null
     capa_url: string | null
     capa_pos: number | null
@@ -308,6 +309,12 @@ const instaDaLoja = computed(() => {
   return i ? `https://instagram.com/${i}` : null
 })
 
+const facebookDaLoja = computed(() => {
+  const f = loja.value?.facebook?.trim()
+  if (!f) return null
+  return f.startsWith('http') ? f : `https://facebook.com/${f}`
+})
+
 const iniciais = computed(() => {
   const n = loja.value?.nome ?? ''
   return n.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
@@ -378,8 +385,18 @@ function voltar() {
 
         <div v-if="!pronto" class="acoes">
           <button class="acao acao--forte" @click="comecar">Marcar horário</button>
-          <a v-if="zapDaLoja" :href="zapDaLoja" target="_blank" rel="noopener" class="acao">WhatsApp</a>
-          <a v-if="instaDaLoja" :href="instaDaLoja" target="_blank" rel="noopener" class="acao">Instagram</a>
+          <a v-if="zapDaLoja" :href="zapDaLoja" target="_blank" rel="noopener" class="acao acao--icone" aria-label="WhatsApp">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 3.5A10.4 10.4 0 0 0 12 0C6.3 0 1.6 4.7 1.6 10.4c0 1.9.5 3.7 1.4 5.2L1.5 21l5.5-1.4c1.5.8 3.2 1.3 5 1.3 5.7 0 10.4-4.7 10.4-10.4 0-2.8-1.1-5.4-3-7.3zM12 19.5c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.3.9.9-3.2-.2-.3a8.6 8.6 0 0 1-1.3-4.6c0-4.8 3.9-8.7 8.7-8.7 2.3 0 4.5.9 6.1 2.5a8.6 8.6 0 0 1 2.5 6.1c0 4.8-3.9 8.7-8.7 8.7zm4.8-6.5c-.3-.1-1.6-.8-1.8-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1.1-.2.2-.3.2-.6.1-.3-.1-1.1-.4-2.1-1.3-.8-.7-1.3-1.6-1.5-1.8-.2-.3 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5v-.5c-.1-.1-.6-1.4-.8-1.9-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.8 4.5 4 .6.3 1.1.4 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.6-.6 1.8-1.3.2-.6.2-1.1.1-1.2l-.5-.3z"/></svg>
+            WhatsApp
+          </a>
+          <a v-if="instaDaLoja" :href="instaDaLoja" target="_blank" rel="noopener" class="acao acao--icone" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" /><circle cx="12" cy="12" r="4.2" /><circle cx="17.6" cy="6.4" r="1.2" fill="currentColor" stroke="none" /></svg>
+            Instagram
+          </a>
+          <a v-if="facebookDaLoja" :href="facebookDaLoja" target="_blank" rel="noopener" class="acao acao--icone" aria-label="Facebook">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.1C22 6.5 17.5 2 12 2S2 6.5 2 12.1c0 5 3.7 9.2 8.4 9.9v-7H7.9v-2.9h2.5V9.9c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6v1.9h2.8l-.5 2.9h-2.3v7c4.8-.8 8.5-4.9 8.5-9.9z"/></svg>
+            Facebook
+          </a>
         </div>
       </header>
 
@@ -761,6 +778,9 @@ function voltar() {
 }
 .acao:hover { border-color: var(--marca-linha); }
 .acao:active { transform: scale(0.98); }
+
+.acao--icone { gap: 7px; }
+.acao--icone svg { width: 19px; height: 19px; }
 
 .acao--forte {
   flex: 1.9;
@@ -1364,6 +1384,12 @@ function voltar() {
     overflow: visible;
   }
   .grelha > li { flex: none; }
+}
+
+@media (max-width: 520px) {
+  /* Numa tela estreita, tres nomes nao cabem: fica so o simbolo, que
+     todo mundo reconhece. */
+  .acao--icone { font-size: 0; gap: 0; flex: 0 0 52px; padding: 12px 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
