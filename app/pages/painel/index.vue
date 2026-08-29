@@ -61,14 +61,45 @@ const dataExtenso = computed(() =>
 const { data: barbeiros } = await useAsyncData<BarbeiroResumo[]>(
   'agenda-barbeiros',
   async () => {
-    const { data } = await supabase
-      .from('perfis')
-      .select('id, nome, foto_url')
-      .eq('atende', true)
-      .eq('status', 'ativo')
-      .or(`barbearia_id.eq.${contexto.value?.barbearia_id},id.eq.${contexto.value?.perfil_id}`)
-      .order('nome', { ascending: true })
-    return (data ?? []) as BarbeiroResumo[]
+    /* Quem atende nesta unidade: a equipe cadastrada nela, mais o
+       proprio dono se ele marcou "eu tambem atendo".
+
+       Sao DUAS consultas de proposito. A versao com .or() montava um
+       texto com os ids no meio; se o contexto ainda nao tivesse
+       carregado, virava "undefined" na consulta e o banco devolvia
+       lista vazia — sem erro nenhum, so uma tela sem ninguem. Assim
+       nao ha texto para dar errado. */
+    const barbearia = contexto.value?.barbearia_id
+    const eu = contexto.value?.perfil_id
+
+    if (!barbearia) return [] as BarbeiroResumo[]
+
+    const [daCasa, meuPerfil] = await Promise.all([
+      supabase
+        .from('perfis')
+        .select('id, nome, foto_url')
+        .eq('atende', true)
+        .eq('status', 'ativo')
+        .eq('barbearia_id', barbearia)
+        .order('nome', { ascending: true }),
+      eu
+        ? supabase
+            .from('perfis')
+            .select('id, nome, foto_url')
+            .eq('id', eu)
+            .eq('atende', true)
+            .eq('status', 'ativo')
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ])
+
+    const lista = [...((daCasa.data ?? []) as BarbeiroResumo[])]
+
+    const meu = meuPerfil.data as BarbeiroResumo | null
+    if (meu && !lista.some((p) => p.id === meu.id)) lista.push(meu)
+
+    lista.sort((a, b) => a.nome.localeCompare(b.nome))
+    return lista
   },
   { default: () => [] as BarbeiroResumo[], watch: [contexto] }
 )

@@ -182,7 +182,7 @@ onBeforeUnmount(() => observer.value?.disconnect())
         <div class="topo__acoes">
           <NuxtLink to="/login" class="link-entrar">Entrar</NuxtLink>
           <a :href="WHATSAPP" target="_blank" rel="noopener" class="btn btn--laranja btn--sm">
-            <span class="so-largo">Falar no </span>WhatsApp
+            <span class="so-largo">Falar no</span> WhatsApp
           </a>
         </div>
       </div>

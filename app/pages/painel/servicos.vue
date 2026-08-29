@@ -19,11 +19,12 @@ const { data: lista, refresh } = await useAsyncData<Linha[]>(
     const { data } = await supabase
       .from('servicos')
       .select('id, nome, descricao, duracao_min, preco, foto_url, ativo, ordem')
+      .eq('barbearia_id', contexto.value?.barbearia_id ?? '')
       .order('ordem', { ascending: true })
       .order('nome', { ascending: true })
     return (data ?? []) as Linha[]
   },
-  { default: () => [] as Linha[] }
+  { default: () => [] as Linha[], watch: [contexto] }
 )
 
 const ativos = computed(() => lista.value.filter((s) => s.ativo).length)

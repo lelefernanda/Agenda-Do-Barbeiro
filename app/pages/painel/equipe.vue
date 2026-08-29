@@ -27,6 +27,7 @@ const { data: dados, refresh } = await useAsyncData(
         .from('perfis')
         .select('id, nome, telefone, foto_url, bio, status')
         .eq('papel', 'barbeiro')
+        .eq('barbearia_id', contexto.value?.barbearia_id ?? '')
         .order('nome', { ascending: true }),
       supabase.from('notas_barbeiro').select('barbeiro_id, media, total'),
       supabase
@@ -40,7 +41,7 @@ const { data: dados, refresh } = await useAsyncData(
       pedidos: (pedidos.data ?? []) as Pedido[],
     }
   },
-  { default: () => ({ barbeiros: [], notas: [], pedidos: [] }) }
+  { default: () => ({ barbeiros: [], notas: [], pedidos: [] }), watch: [contexto] }
 )
 
 const equipe = computed(() => dados.value.barbeiros)

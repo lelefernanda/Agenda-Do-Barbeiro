@@ -136,6 +136,13 @@ const estiloDaLoja = computed(() => ({
   '--marca': cor.value,
   '--marca-suave': `${cor.value}1F`,
   '--marca-brilho': `${cor.value}B3`,
+  /* Tons derivados: a cor da barbearia tinge o fundo, a grade, os
+     cartoes e as bordas — nao so os botoes. */
+  '--marca-grade': `${cor.value}14`,
+  /* O cartao e preto solido com um veu da cor por cima: sem o preto
+     por baixo, a transparencia deixava o texto boiando no fundo. */
+  '--marca-carta': `linear-gradient(${cor.value}14, ${cor.value}14), var(--preto-800)`,
+  '--marca-borda': `${cor.value}26`,
   '--marca-linha': `${cor.value}59`,
 }))
 
@@ -858,8 +865,8 @@ function voltar() {
      lugar: rola o conteudo, o brilho continua onde estava. */
   position: relative;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    linear-gradient(var(--marca-grade) 1px, transparent 1px),
+    linear-gradient(90deg, var(--marca-grade) 1px, transparent 1px);
   background-size: 28px 28px, 28px 28px;
   background-attachment: fixed;
 }
@@ -888,7 +895,8 @@ function voltar() {
   width: 100%;
   height: clamp(170px, 44vw, 250px);
   overflow: hidden;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
 }
 .capa--vazia { background: linear-gradient(140deg, var(--marca-suave), var(--preto-800)); }
 .capa__img { width: 100%; height: 100%; object-fit: cover; }
@@ -905,7 +913,8 @@ function voltar() {
   justify-content: center;
   border-radius: 99px;
   overflow: hidden;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border: 4px solid var(--preto);
   color: var(--marca);
   font-size: 29px;
@@ -970,7 +979,7 @@ function voltar() {
 /* ---------- secoes ---------- */
 .secao {
   padding: 20px;
-  border-top: 1px solid var(--preto-700);
+  border-top: 1px solid var(--marca-borda);
   scroll-margin-top: 8px;
 }
 .secao__rotulo {
@@ -1017,7 +1026,8 @@ function voltar() {
 .nada {
   margin: 0;
   padding: 22px 20px;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border: 1px dashed var(--preto-600);
   border-radius: 14px;
   font-size: 13.5px;
@@ -1035,7 +1045,8 @@ function voltar() {
   gap: 13px;
   width: 100%;
   padding: 12px 14px;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border: 1px solid transparent;
   border-radius: 13px;
   font-family: var(--fonte-corpo);
@@ -1097,8 +1108,9 @@ function voltar() {
   justify-content: center;
   border-radius: 99px;
   overflow: hidden;
-  background: var(--preto-800);
-  border: 1px solid var(--preto-700);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
+  border: 1px solid var(--marca-borda);
   color: var(--marca);
   font-size: 20px;
   font-weight: 750;
@@ -1118,7 +1130,8 @@ function voltar() {
   align-items: center;
   gap: 13px;
   padding: 13px 14px;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border: 1px solid transparent;
   border-radius: 13px;
   text-decoration: none;
@@ -1161,7 +1174,8 @@ function voltar() {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border: 1px solid transparent;
   border-radius: 12px;
   font-family: var(--fonte-corpo);
@@ -1179,7 +1193,8 @@ function voltar() {
   padding: 11px 0;
   width: calc(25% - 6px);
   min-width: 70px;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border: 1px solid transparent;
   border-radius: 11px;
   color: var(--branco);
@@ -1196,7 +1211,8 @@ function voltar() {
 .conferir {
   padding: 14px 16px;
   margin-bottom: 18px;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border-left: 3px solid var(--marca);
   border-radius: 12px;
 }
@@ -1225,7 +1241,8 @@ function voltar() {
   justify-content: center;
   border-radius: 99px;
   overflow: hidden;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   color: var(--marca);
   font-size: 13px;
   font-weight: 750;
@@ -1259,7 +1276,8 @@ function voltar() {
   justify-content: center;
   border-radius: 99px;
   overflow: hidden;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   color: var(--marca);
   font-size: 12px;
   font-weight: 750;
@@ -1278,7 +1296,8 @@ function voltar() {
   justify-content: center;
   border-radius: 99px;
   overflow: hidden;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border: 1px dashed var(--preto-600);
   color: var(--cinza-600);
   cursor: pointer;
@@ -1321,8 +1340,9 @@ function voltar() {
   font-family: var(--fonte-corpo);
   font-size: 16px;
   color: var(--branco);
-  background: var(--preto-800);
-  border: 1px solid var(--preto-700);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
+  border: 1px solid var(--marca-borda);
   border-radius: 12px;
 }
 .campo input:focus { outline: none; border-color: var(--marca); }
@@ -1396,7 +1416,8 @@ function voltar() {
 .resumo {
   margin: 0 0 18px;
   padding: 14px 16px;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border-radius: 12px;
   text-align: left;
 }
@@ -1411,8 +1432,9 @@ function voltar() {
 /* ---------- aviso ---------- */
 .aviso {
   padding: 26px 24px;
-  background: var(--preto-800);
-  border: 1px solid var(--preto-700);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
+  border: 1px solid var(--marca-borda);
   border-radius: 18px;
   text-align: center;
   max-width: 420px;
@@ -1423,7 +1445,7 @@ function voltar() {
 /* ---------- rodape ---------- */
 .rodape {
   padding: 22px 20px 0;
-  border-top: 1px solid var(--preto-700);
+  border-top: 1px solid var(--marca-borda);
   text-align: center;
   font-size: 11.5px;
   color: var(--cinza-600);
@@ -1443,11 +1465,13 @@ function voltar() {
 }
 .selo__ponto { width: 7px; height: 7px; border-radius: 99px; background: currentColor; flex-shrink: 0; }
 .selo--on { color: #4ADE80; background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.32); }
-.selo--off { color: var(--cinza-600); background: var(--preto-800); border-color: var(--preto-600); }
+.selo--off { color: var(--cinza-600); background: var(--marca-carta);
+  background-color: var(--preto-800); border-color: var(--preto-600); }
 
 /* ---------- unidades agrupadas por cidade ---------- */
 .grupo-cidade {
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border-radius: 13px;
   overflow: hidden;
 }
@@ -1513,7 +1537,8 @@ function voltar() {
   justify-content: space-between;
   gap: 12px;
   padding: 13px 15px;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border: 1px solid transparent;
   border-radius: 13px;
   text-decoration: none;
@@ -1529,8 +1554,9 @@ function voltar() {
 .pagamentos { display: flex; gap: 8px; flex-wrap: wrap; }
 .pagamento {
   padding: 8px 14px;
-  background: var(--preto-800);
-  border: 1px solid var(--preto-700);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
+  border: 1px solid var(--marca-borda);
   border-radius: 99px;
   font-size: 13px;
   color: var(--cinza);
@@ -1545,7 +1571,7 @@ function voltar() {
   gap: 14px;
   padding: 9px 0;
   font-size: 13.5px;
-  border-bottom: 1px solid var(--preto-800);
+  border-bottom: 1px solid var(--marca-borda);
 }
 .horario:last-child { border-bottom: none; }
 .horario__dia { display: flex; align-items: center; gap: 8px; color: var(--cinza); }
@@ -1592,7 +1618,8 @@ function voltar() {
   width: 100%;
   height: 100%;
   padding: 0 0 12px;
-  background: var(--preto-800);
+  background: var(--marca-carta);
+  background-color: var(--preto-800);
   border: 1px solid transparent;
   border-radius: 14px;
   overflow: hidden;
@@ -1695,12 +1722,12 @@ function voltar() {
 
   .lado {
     margin-top: 24px;
-    border: 1px solid var(--preto-700);
+    border: 1px solid var(--marca-borda);
     border-radius: 18px;
     overflow: hidden;
   }
 
-  .secao { border-top: 1px solid var(--preto-700); }
+  .secao { border-top: 1px solid var(--marca-borda); }
   .secao:first-child { border-top: none; }
 
   .horas .hora { width: calc(16.66% - 7px); }
