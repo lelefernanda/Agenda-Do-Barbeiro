@@ -127,6 +127,7 @@ const { data: carga, refresh } = await useAsyncData(
         .from('agendamentos')
         .select('id, cliente_id, servico_id, inicio, fim, status, observacao')
         .eq('barbeiro_id', selecionado.value)
+        .eq('barbearia_id', contexto.value?.barbearia_id ?? '')
         .gte('inicio', iniDia.toISOString())
         .lt('inicio', fimDia.toISOString())
         .order('inicio', { ascending: true }),
@@ -168,7 +169,7 @@ const { data: carga, refresh } = await useAsyncData(
       clientes: new Map<string, ClienteResumo>(),
       servicos: new Map<string, ServicoResumo>(),
     }),
-    watch: [selecionado, dia],
+    watch: [selecionado, dia, contexto],
   }
 )
 
@@ -518,12 +519,19 @@ const contagemServicos = ref<number | null>(null)
 const contagemEquipe = ref<number | null>(null)
 
 watch(
-  ehDono,
-  async (v) => {
-    if (!v) return
+  [ehDono, () => contexto.value?.barbearia_id],
+  async ([v, barbearia]) => {
+    if (!v || !barbearia) return
     const [s, e] = await Promise.all([
-      supabase.from('servicos').select('id', { count: 'exact', head: true }),
-      supabase.from('perfis').select('id', { count: 'exact', head: true }).eq('papel', 'barbeiro'),
+      supabase
+        .from('servicos')
+        .select('id', { count: 'exact', head: true })
+        .eq('barbearia_id', barbearia),
+      supabase
+        .from('perfis')
+        .select('id', { count: 'exact', head: true })
+        .eq('papel', 'barbeiro')
+        .eq('barbearia_id', barbearia),
     ])
     contagemServicos.value = s.count ?? 0
     contagemEquipe.value = e.count ?? 0

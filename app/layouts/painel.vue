@@ -114,7 +114,7 @@ const itens = computed<Item[]>(() => {
       { rota: '/painel/equipe', texto: 'Equipe', icone: ICONES.equipe },
       { rota: '/painel/caixa', texto: 'Caixa', icone: ICONES.caixa },
       { rota: '/painel/horarios', texto: 'Horários', icone: ICONES.horarios },
-      { rota: '/painel/clientes', texto: 'Clientes', icone: ICONES.clientes, emBreve: true },
+      { rota: '/painel/clientes', texto: 'Clientes', icone: ICONES.clientes },
       { rota: '/painel/barbearia', texto: 'Minha barbearia', curto: 'Barbearia', icone: ICONES.barbearia },
     ]
   }

@@ -28,6 +28,10 @@ type Corpo = {
   nome?: string
   telefone?: string
   observacao?: string
+  /** Codigo que o navegador do cliente guarda para ser reconhecido depois. */
+  chave?: string
+  /** Foto que ele escolheu ao marcar, ja enviada para o servidor. */
+  foto_url?: string
 }
 
 /** Deixa so os digitos. Precisa de 10 ou 11 para ser telefone brasileiro. */
@@ -48,6 +52,8 @@ export default defineEventHandler(async (evento) => {
 
   const slug = (corpo.slug ?? '').trim().toLowerCase()
   const barbeiroId = (corpo.barbeiro_id ?? '').trim()
+  const chave = (corpo.chave ?? '').trim()
+  const fotoUrl = (corpo.foto_url ?? '').trim()
   const servicoId = (corpo.servico_id ?? '').trim()
   const dia = (corpo.dia ?? '').trim()
   const hora = (corpo.hora ?? '').trim()
@@ -194,10 +200,23 @@ export default defineEventHandler(async (evento) => {
 
   let clienteId = achado?.id ?? null
 
+  /* A chave e a foto vem do celular do proprio cliente: servem para a
+     pagina reconhece-lo na proxima vez e para o barbeiro ver o rosto de
+     quem vem na lista. */
+  const chaveLimpa = /^[a-z0-9-]{20,60}$/.test(chave) ? chave : null
+  const fotoLimpa = fotoUrl.startsWith('http') ? fotoUrl.slice(0, 500) : null
+
+  if (clienteId) {
+    const mudanca: Record<string, string> = { nome }
+    if (chaveLimpa) mudanca.chave = chaveLimpa
+    if (fotoLimpa) mudanca.foto_url = fotoLimpa
+    await admin.from('clientes').update(mudanca).eq('id', clienteId)
+  }
+
   if (!clienteId) {
     const { data: criado, error: erroCliente } = await admin
       .from('clientes')
-      .insert({ barbearia_id: barbearia.id, nome, telefone })
+      .insert({ barbearia_id: barbearia.id, nome, telefone, chave: chaveLimpa, foto_url: fotoLimpa })
       .select('id')
       .single()
 

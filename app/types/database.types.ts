@@ -62,6 +62,8 @@ export type Cliente = {
   nome: string
   telefone: string
   observacao: string | null
+  foto_url: string | null
+  chave: string | null
   criado_em: string
 }
 

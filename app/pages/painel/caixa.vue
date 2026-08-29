@@ -89,6 +89,7 @@ const { data: barbeiros, refresh: recarregarBarbeiros } = await useAsyncData<Bar
       .select('id, nome, foto_url, comissao_pct, meta_mes')
       .eq('atende', true)
       .eq('status', 'ativo')
+      .eq('barbearia_id', contexto.value?.barbearia_id ?? '')
       .order('nome', { ascending: true })
     if (souBarbeiro.value && contexto.value) q = q.eq('id', contexto.value.perfil_id)
     const { data } = await q
@@ -100,7 +101,10 @@ const { data: barbeiros, refresh: recarregarBarbeiros } = await useAsyncData<Bar
 const { data: nomesServicos } = await useAsyncData<Map<string, string>>(
   'caixa-servicos',
   async () => {
-    const { data } = await supabase.from('servicos').select('id, nome')
+    const { data } = await supabase
+      .from('servicos')
+      .select('id, nome')
+      .eq('barbearia_id', contexto.value?.barbearia_id ?? '')
     const m = new Map<string, string>()
     for (const s of data ?? []) m.set((s as { id: string }).id, (s as { nome: string }).nome)
     return m
@@ -114,6 +118,7 @@ const { data: concluidos } = await useAsyncData<Concluido[]>(
     let q = supabase
       .from('agendamentos')
       .select('barbeiro_id, servico_id, preco_cobrado, inicio')
+      .eq('barbearia_id', contexto.value?.barbearia_id ?? '')
       .eq('status', 'concluido')
       .gte('inicio', janela.value.ini.toISOString())
       .lt('inicio', janela.value.fim.toISOString())

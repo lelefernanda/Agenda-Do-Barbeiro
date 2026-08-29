@@ -65,6 +65,30 @@ const equipe = computed(() => vitrine.value?.atendentes ?? [])
 const cor = computed(() => loja.value?.cor || '#3B82F6')
 const outras = computed(() => vitrine.value?.outrasUnidades ?? [])
 
+/* Com poucas unidades, uma lista simples basta. Com muitas, o cliente
+   pensa em cidade primeiro ("tem uma perto de mim?") — por isso, a
+   partir de cinco, elas se agrupam por cidade, cada grupo com o
+   endereco de cada loja para diferenciar as que ficam na mesma. */
+const gruposCidade = computed(() => {
+  const mapa = new Map<string, typeof outras.value>()
+  for (const u of outras.value) {
+    const chave = u.cidade || 'Outras unidades'
+    if (!mapa.has(chave)) mapa.set(chave, [])
+    mapa.get(chave)!.push(u)
+  }
+  return [...mapa.entries()]
+    .map(([cidade, unidades]) => ({ cidade, unidades }))
+    .sort((a, b) => a.cidade.localeCompare(b.cidade))
+})
+
+const agrupar = computed(() => outras.value.length >= 5)
+
+const cidadeAberta = ref<string | null>(null)
+
+function virarCidade(cidade: string) {
+  cidadeAberta.value = cidadeAberta.value === cidade ? null : cidade
+}
+
 const NOMES_DIA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
 const NOMES_PAGAMENTO: Record<string, string> = {
@@ -229,6 +253,101 @@ function escolherHora(h: string) {
    Dados do cliente e confirmação
    ------------------------------------------------------------ */
 const form = reactive({ nome: '', telefone: '', observacao: '' })
+
+/* ------------------------------------------------------------
+   Quem já esteve aqui
+
+   O celular do cliente guarda um código e os dados dele. Na volta, a
+   página o reconhece e ele marca sem digitar nada de novo. Não é
+   login: não tem senha, não sai deste aparelho, e não dá acesso a
+   coisa nenhuma além de preencher os próprios campos.
+   ------------------------------------------------------------ */
+const minhaChave = ref('')
+const minhaFoto = ref('')
+const jaConhecido = ref(false)
+
+onMounted(() => {
+  try {
+    let c = localStorage.getItem('cliente-chave')
+    if (!c) {
+      c = crypto.randomUUID()
+      localStorage.setItem('cliente-chave', c)
+    }
+    minhaChave.value = c
+
+    const guardado = localStorage.getItem('cliente-dados')
+    if (guardado) {
+      const d = JSON.parse(guardado) as { nome?: string; telefone?: string; foto?: string }
+      if (d.nome) form.nome = d.nome
+      if (d.telefone) form.telefone = d.telefone
+      if (d.foto) minhaFoto.value = d.foto
+      jaConhecido.value = !!d.nome
+    }
+  } catch {
+    // Navegador sem armazenamento: segue como visitante novo.
+  }
+})
+
+function guardarMeusDados() {
+  try {
+    localStorage.setItem(
+      'cliente-dados',
+      JSON.stringify({ nome: form.nome, telefone: form.telefone, foto: minhaFoto.value })
+    )
+  } catch {
+    // Sem armazenamento, o agendamento funciona igual — só não lembra.
+  }
+}
+
+function esquecerMeusDados() {
+  try {
+    localStorage.removeItem('cliente-dados')
+  } catch { /* nada a fazer */ }
+  form.nome = ''
+  form.telefone = ''
+  minhaFoto.value = ''
+  jaConhecido.value = false
+}
+
+/* ---------- a foto ---------- */
+const enviandoFoto = ref(false)
+const erroFoto = ref('')
+const entradaFoto = ref<HTMLInputElement | null>(null)
+
+async function escolherFoto(e: Event) {
+  const arquivo = (e.target as HTMLInputElement).files?.[0]
+  if (!arquivo || !minhaChave.value) return
+
+  erroFoto.value = ''
+  enviandoFoto.value = true
+
+  const corpo = new FormData()
+  corpo.append('chave', minhaChave.value)
+  corpo.append('foto', arquivo)
+
+  try {
+    const r = await $fetch<{ url: string }>('/api/publico/foto', { method: 'POST', body: corpo })
+    minhaFoto.value = r.url
+    guardarMeusDados()
+  } catch (err) {
+    const m = err as { statusMessage?: string; data?: { statusMessage?: string } }
+    erroFoto.value = m.data?.statusMessage ?? m.statusMessage ?? 'Não foi possível enviar a foto.'
+  } finally {
+    enviandoFoto.value = false
+    if (entradaFoto.value) entradaFoto.value.value = ''
+  }
+}
+
+const minhaInicial = computed(() => (form.nome.trim()[0] ?? '?').toUpperCase())
+
+const saudacaoDoDia = computed(() => {
+  const hora = Number(
+    new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(new Date())
+  )
+  if (hora < 12) return 'Bom dia'
+  if (hora < 18) return 'Boa tarde'
+  return 'Boa noite'
+})
 const enviando = ref(false)
 const erro = ref('')
 const pronto = ref<{ barbeiro: string; servico: string; inicio: string } | null>(null)
@@ -262,9 +381,12 @@ async function confirmar() {
           nome: form.nome,
           telefone: form.telefone,
           observacao: form.observacao,
+          chave: minhaChave.value,
+          foto_url: minhaFoto.value,
         },
       }
     )
+    guardarMeusDados()
     pronto.value = resposta
     nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
   } catch (e) {
@@ -342,6 +464,14 @@ function voltar() {
 
 <template>
   <div class="pagina" :style="estiloDaLoja">
+    <div v-if="jaConhecido" class="barra-topo">
+      <span class="barra-topo__foto">
+        <img v-if="minhaFoto" :src="minhaFoto" alt="" />
+        <template v-else>{{ minhaInicial }}</template>
+      </span>
+      <span class="barra-topo__nome">{{ saudacaoDoDia }}, {{ form.nome.split(' ')[0] }}</span>
+    </div>
+
     <!-- ============ barbearia nao encontrada ============ -->
     <div v-if="erroVitrine" class="centro">
       <div class="aviso">
@@ -382,6 +512,8 @@ function voltar() {
         </span>
 
         <p v-if="loja.sobre" class="perfil__sobre">{{ loja.sobre }}</p>
+
+
 
         <div v-if="!pronto" class="acoes">
           <button class="acao acao--forte" @click="comecar">Marcar horário</button>
@@ -532,6 +664,22 @@ function voltar() {
 
             <p v-if="erro" class="erro">{{ erro }}</p>
 
+            <div class="minha-foto">
+              <label class="minha-foto__circulo">
+                <img v-if="minhaFoto" :src="minhaFoto" alt="" />
+                <span v-else-if="form.nome" class="minha-foto__inicial">{{ minhaInicial }}</span>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="3.4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></svg>
+                <input ref="entradaFoto" type="file" accept="image/jpeg,image/png,image/webp" hidden :disabled="enviandoFoto" @change="escolherFoto" />
+              </label>
+              <div class="minha-foto__lado">
+                <p v-if="jaConhecido" class="minha-foto__ola">Que bom te ver de novo!</p>
+                <p class="minha-foto__dica">{{ enviandoFoto ? 'Enviando…' : minhaFoto ? 'Toque para trocar sua foto' : 'Toque para pôr sua foto (opcional)' }}</p>
+                <button v-if="jaConhecido" class="minha-foto__nao" @click="esquecerMeusDados">Não sou eu</button>
+              </div>
+            </div>
+
+            <p v-if="erroFoto" class="erro">{{ erroFoto }}</p>
+
             <label class="campo">
               <span>Seu nome</span>
               <input v-model="form.nome" placeholder="Como o barbeiro te chama" :disabled="enviando" />
@@ -630,7 +778,9 @@ function voltar() {
 
           <section v-if="outras.length" class="secao">
             <p class="secao__rotulo">Também atendemos em</p>
-            <div class="irmas">
+
+            <!-- poucas unidades: lista simples -->
+            <div v-if="!agrupar" class="irmas">
               <NuxtLink v-for="u in outras" :key="u.slug" :to="`/${u.slug}`" class="irma">
                 <span class="irma__textos">
                   <span class="irma__cidade">{{ u.cidade || u.nome }}</span>
@@ -638,6 +788,33 @@ function voltar() {
                 </span>
                 <span class="irma__seta">→</span>
               </NuxtLink>
+            </div>
+
+            <!-- muitas unidades: agrupadas por cidade -->
+            <div v-else class="irmas">
+              <div v-for="g in gruposCidade" :key="g.cidade" class="grupo-cidade">
+                <button class="grupo-cidade__topo" @click="virarCidade(g.cidade)">
+                  <span class="grupo-cidade__nome">
+                    {{ g.cidade }}
+                    <span class="grupo-cidade__conta">{{ g.unidades.length }}</span>
+                  </span>
+                  <svg
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                    class="grupo-cidade__seta" :class="{ 'grupo-cidade__seta--aberta': cidadeAberta === g.cidade }"
+                  ><path d="M7 10l5 5 5-5" /></svg>
+                </button>
+
+                <div v-if="cidadeAberta === g.cidade" class="grupo-cidade__lista">
+                  <NuxtLink v-for="u in g.unidades" :key="u.slug" :to="`/${u.slug}`" class="irma irma--filha">
+                    <span class="irma__textos">
+                      <span class="irma__cidade">{{ u.nome }}</span>
+                      <span v-if="u.endereco" class="irma__endereco">{{ u.endereco }}</span>
+                    </span>
+                    <span class="irma__seta">→</span>
+                  </NuxtLink>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -1028,6 +1205,104 @@ function voltar() {
 .conferir__linha strong { color: var(--branco); font-weight: 700; }
 .conferir__linha--forte { color: var(--branco); font-weight: 650; font-size: 15px; margin-top: 8px !important; }
 
+/* ---------- saudacao de quem ja veio ---------- */
+.saudacao-cliente {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--marca-suave);
+  border: 1px solid var(--marca-linha);
+  border-radius: 13px;
+}
+.saudacao-cliente__foto {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--preto-800);
+  color: var(--marca);
+  font-size: 13px;
+  font-weight: 750;
+}
+.saudacao-cliente__foto img { width: 100%; height: 100%; object-fit: cover; }
+.saudacao-cliente__texto { font-size: 13.5px; font-weight: 600; color: var(--branco); }
+
+/* ---------- quem esta vendo, fixo no topo ---------- */
+.barra-topo {
+  position: fixed;
+  top: 14px;
+  right: 26px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  background: rgba(10, 11, 13, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--marca-linha);
+  border-radius: 99px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+.barra-topo__foto {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--preto-800);
+  color: var(--marca);
+  font-size: 12px;
+  font-weight: 750;
+}
+.barra-topo__foto img { width: 100%; height: 100%; object-fit: cover; }
+.barra-topo__nome { font-size: 13px; font-weight: 650; color: var(--branco); }
+
+/* ---------- a foto do cliente ---------- */
+.minha-foto { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.minha-foto__circulo {
+  width: 66px;
+  height: 66px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--preto-800);
+  border: 1px dashed var(--preto-600);
+  color: var(--cinza-600);
+  cursor: pointer;
+}
+.minha-foto__circulo:hover { border-color: var(--marca); }
+.minha-foto__circulo img { width: 100%; height: 100%; object-fit: cover; }
+.minha-foto__circulo svg { width: 26px; height: 26px; }
+.minha-foto__inicial { font-size: 24px; font-weight: 750; color: var(--marca); }
+.minha-foto__lado { flex: 1; min-width: 0; }
+.minha-foto__ola { margin: 0 0 3px; font-size: 14px; font-weight: 650; color: var(--marca); }
+.minha-foto__dica { margin: 0; font-size: 12.5px; color: var(--cinza-600); line-height: 1.45; }
+.minha-foto__nao {
+  margin-top: 5px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--cinza-600);
+  font-family: var(--fonte-corpo);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.minha-foto__nao:hover { color: var(--branco); }
+
 /* ---------- campos ---------- */
 .campo { display: flex; flex-direction: column; margin-bottom: 14px; }
 .campo > span {
@@ -1169,6 +1444,60 @@ function voltar() {
 .selo__ponto { width: 7px; height: 7px; border-radius: 99px; background: currentColor; flex-shrink: 0; }
 .selo--on { color: #4ADE80; background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.32); }
 .selo--off { color: var(--cinza-600); background: var(--preto-800); border-color: var(--preto-600); }
+
+/* ---------- unidades agrupadas por cidade ---------- */
+.grupo-cidade {
+  background: var(--preto-800);
+  border-radius: 13px;
+  overflow: hidden;
+}
+
+.grupo-cidade__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 13px 15px;
+  background: transparent;
+  border: none;
+  color: var(--branco);
+  font-family: var(--fonte-corpo);
+  cursor: pointer;
+}
+
+.grupo-cidade__nome {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14.5px;
+  font-weight: 650;
+}
+
+.grupo-cidade__conta {
+  padding: 1px 8px;
+  background: var(--marca-suave);
+  color: var(--marca);
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.grupo-cidade__seta {
+  width: 16px;
+  height: 16px;
+  color: var(--cinza-600);
+  transition: transform 0.16s ease;
+}
+.grupo-cidade__seta--aberta { transform: rotate(180deg); }
+
+.grupo-cidade__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+.irma--filha { background: rgba(0, 0, 0, 0.22); }
 
 /* ---------- outras unidades ---------- */
 .irmas {
