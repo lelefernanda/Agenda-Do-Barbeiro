@@ -48,6 +48,7 @@ type Vitrine = {
   }
   servicos: ServicoPublico[]
   atendentes: AtendentePublico[]
+  outrasUnidades: { nome: string; slug: string; cidade: string | null; endereco: string | null }[]
   semana: { dia: number; abre: string; fecha: string }[]
   aberto: boolean
   dia_hoje: number
@@ -61,6 +62,7 @@ const loja = computed(() => vitrine.value?.barbearia ?? null)
 const serv = computed(() => vitrine.value?.servicos ?? [])
 const equipe = computed(() => vitrine.value?.atendentes ?? [])
 const cor = computed(() => loja.value?.cor || '#3B82F6')
+const outras = computed(() => vitrine.value?.outrasUnidades ?? [])
 
 const NOMES_DIA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -609,6 +611,19 @@ function voltar() {
             </div>
           </section>
 
+          <section v-if="outras.length" class="secao">
+            <p class="secao__rotulo">Também atendemos em</p>
+            <div class="irmas">
+              <NuxtLink v-for="u in outras" :key="u.slug" :to="`/${u.slug}`" class="irma">
+                <span class="irma__textos">
+                  <span class="irma__cidade">{{ u.cidade || u.nome }}</span>
+                  <span v-if="u.endereco" class="irma__endereco">{{ u.endereco }}</span>
+                </span>
+                <span class="irma__seta">→</span>
+              </NuxtLink>
+            </div>
+          </section>
+
           <section v-if="loja.endereco || loja.cidade" class="secao">
             <p class="secao__rotulo">Onde fica</p>
             <a
@@ -1134,6 +1149,32 @@ function voltar() {
 .selo__ponto { width: 7px; height: 7px; border-radius: 99px; background: currentColor; flex-shrink: 0; }
 .selo--on { color: #4ADE80; background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.32); }
 .selo--off { color: var(--cinza-600); background: var(--preto-800); border-color: var(--preto-600); }
+
+/* ---------- outras unidades ---------- */
+.irmas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.irma {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  background: var(--preto-800);
+  border: 1px solid transparent;
+  border-radius: 13px;
+  text-decoration: none;
+  transition: border-color 0.16s ease;
+}
+.irma:hover { border-color: var(--marca-linha); }
+.irma__textos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.irma__cidade { font-size: 14.5px; font-weight: 650; color: var(--branco); }
+.irma__endereco { font-size: 12px; color: var(--cinza-600); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.irma__seta { color: var(--marca); font-size: 15px; }
 
 /* ---------- formas de pagamento ---------- */
 .pagamentos { display: flex; gap: 8px; flex-wrap: wrap; }

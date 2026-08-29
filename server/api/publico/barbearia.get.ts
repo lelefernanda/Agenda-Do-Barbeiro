@@ -133,7 +133,45 @@ export default defineEventHandler(async (evento) => {
   const aberto =
     !!hoje && minutoAgora >= emMinutos(hoje.abre) && minutoAgora < emMinutos(hoje.fecha)
 
+  /* As outras lojas do mesmo dono. Quem abre a pagina de uma cidade
+     descobre que existe atendimento na outra — hoje o cliente so
+     saberia por acaso. */
+  const { data: donosDaqui } = await admin
+    .from('donos_barbearias')
+    .select('perfil_id')
+    .eq('barbearia_id', barbearia.id)
+
+  let outrasUnidades: { nome: string; slug: string; cidade: string | null }[] = []
+
+  if ((donosDaqui ?? []).length) {
+    const { data: todas } = await admin
+      .from('donos_barbearias')
+      .select('barbearia_id')
+      .in('perfil_id', (donosDaqui ?? []).map((d) => d.perfil_id))
+
+    const ids = [...new Set((todas ?? []).map((t) => t.barbearia_id))]
+      .filter((id) => id !== barbearia.id)
+
+    if (ids.length) {
+      const { data: irmas } = await admin
+        .from('barbearias')
+        .select('nome, slug, cidade, endereco, status')
+        .in('id', ids)
+        .eq('status', 'ativa')
+        .order('cidade')
+        .order('nome')
+
+      outrasUnidades = (irmas ?? []).map((b) => ({
+        nome: b.nome,
+        slug: b.slug,
+        cidade: b.cidade,
+        endereco: b.endereco,
+      }))
+    }
+  }
+
   return {
+    outrasUnidades,
     barbearia: {
       id: barbearia.id,
       nome: barbearia.nome,
